@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preload" href="/css/navbar.css" as="style">
+    <link rel="preload" href="/css/usuario.css" as="style">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/usuario.css">
+    <script src="/script/utils.js" defer></script>
+    <title>Cadastro de Usuário</title>
+</head>
+
+<body>
+    <%- include('partials/header') %>
+        <main>
+            <form class="user-form" id="user-form">
+
+                <label for="user-type">Tipo de Usuário:</label>
+                <select id="user-type" name="user-type" required>
+                    <option value="admin">Administrador</option>
+                    <option value="employee">Funcionário</option>
+                </select>
+
+
+                <label for="login">Login:</label>
+                <input type="text" id="login" name="login" placeholder="Digite o login" required>
+
+
+                <label for="password">Senha:</label>
+                <input type="password" id="password" name="password" placeholder="Digite a senha" required>
+
+
+                <label for="confirm-password">Confirmação da Senha:</label>
+                <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirme a senha"
+                    required>
+
+
+                <button type="submit">Cadastrar</button>
+
+            </form>
+        </main>
+</body>
+
+</html>

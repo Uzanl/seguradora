@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Página para cadastro e pesquisa de ocorrências com campos para inserir e pesquisar informações como placa do veículo, placa da carreta, nome do cliente, nome do motorista, descrição e status. Inclui formulários separados para cadastro e pesquisa de ocorrências, e uma área para visualizar ocorrências registradas.">
+    <link rel="preload" href="/css/navbar.css" as="style">
+    <link rel="preload" href="/css/ocorrencia.css" as="style">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/ocorrencia.css">
+    <script src="/script/utils.js" defer></script>
+    <title>Formulário de Ocorrências</title>
+</head>
+
+<body>
+    <%- include('partials/header') %>
+        <main>
+
+            <form form class="form-editor" id="ocorrencia-form">
+                <label for="placa-veiculo">Placa do Veículo:</label>
+                <input type="text" id="placa-veiculo" placeholder="Digite a placa do veículo" name="placa-veiculo"
+                    required>
+
+                <label for="placa-carreta">Placa da Carreta:</label>
+                <input type="text" id="placa-carreta" placeholder="Digite a placa da carreta" name="placa-carreta"
+                    required>
+                <div class="search-container">
+                    <label for="nome-cliente">Nome do Cliente:</label>
+                    <input type="text" id="nome-cliente" class="search-box" placeholder="Digite o nome do cliente" name="nome-cliente"
+                        required>
+                        <ul id="combo-list" class="suggestion-list"></ul>
+                </div>
+
+
+                <label for="nome-motorista">Nome do Motorista:</label>
+                <input type="text" id="nome-motorista" placeholder="Digite o nome do motorista" name="nome-motorista"
+                    required>
+
+                <label for="descricao">Descrição:</label>
+                <textarea id="descricao" placeholder="Digite a descrição da ocorrência" name="descricao" rows="4"
+                    required></textarea>
+
+                <label for="status">Status:</label>
+                <select id="status" name="status" required>
+                    <option value="resolvido">Resolvido</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="nao-resolvido">Não Resolvido</option>
+                </select>
+
+                <button type="submit">Enviar</button>
+            </form>
+
+            <div class="ocorrencia">
+
+            </div>
+
+            <form class="form-editor">
+                <label for="placa-veiculo-pesquisa">Placa do Veículo:</label>
+                <input type="text" id="placa-veiculo-pesquisa" placeholder="Pesquise com a placa do veículo"
+                    name="placa-veiculo-pesquisa">
+
+                <label for="placa-carreta-pesquisa">Placa da Carreta:</label>
+                <input type="text" id="placa-carreta-pesquisa" placeholder="Pesquise com a placa da carreta"
+                    name="placa-carreta-pesquisa">
+
+                <label for="nome-cliente-pesquisa">Nome do Cliente:</label>
+                <input type="text" id="nome-cliente-pesquisa" placeholder="Pesquise com o nome do cliente"
+                    name="nome-cliente-pesquisa">
+
+                <label for="nome-motorista-pesquisa">Nome do Motorista:</label>
+                <input type="text" id="nome-motorista-pesquisa" placeholder="Pesquise com o nome do motorista"
+                    name="nome-motorista-pesquisa">
+
+                <label for="descricao-pesquisa">Descrição:</label>
+                <textarea id="descricao-pesquisa" placeholder="Pesquise com a descrição da ocorrência"
+                    name="descricao-pesquisa" rows="4"></textarea>
+
+                <label for="status-pesquisa">Status:</label>
+                <select id="status-pesquisa" name="status-pesquisa">
+                    <option value="">Selecione um Status (opcional)</option>
+                    <option value="resolvido">Resolvido</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="nao-resolvido">Não Resolvido</option>
+                </select>
+
+                <label for="data-de-pesquisa">De:</label>
+                <input type="date" id="data-de-pesquisa" name="data-de-pesquisa">
+
+                <label for="data-ate-pesquisa">Até:</label>
+                <input type="date" id="data-ate-pesquisa" name="data-ate-pesquisa">
+            </form>
+
+
+
+        </main>
+</body>
+
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preload" href="/css/navbar.css" as="style">
+    <link rel="preload" href="/css/cliente.css" as="style">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/cliente.css">
+    <script src="/script/utils.js" defer></script>
+    <title>Cadastro de Cliente</title>
+</head>
+
+<body>
+    <%- include('partials/header') %>
+        <main>
+            <form class="client-form" id="client-form">
+
+                <label for="client-name">Nome do Cliente:</label>
+                <input type="text" id="client-name" name="client-name" placeholder="Digite o nome do cliente" required>
+                <button type="submit">Cadastrar</button>
+
+            </form>
+
+        </main>
+</body>
+
+</html>
