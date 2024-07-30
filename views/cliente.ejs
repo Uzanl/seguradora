@@ -8,20 +8,85 @@
     <link rel="preload" href="/css/cliente.css" as="style">
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/cliente.css">
+    <script src="/script/cliente.js" defer></script>
     <script src="/script/utils.js" defer></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
     <title>Cadastro de Cliente</title>
 </head>
 
 <body>
     <%- include('partials/header') %>
         <main>
-            <form class="client-form" id="client-form">
+            <div class="cadastro-form">
+                <form class="client-form" id="client-form">
 
-                <label for="client-name">Nome do Cliente:</label>
-                <input type="text" id="client-name" name="client-name" placeholder="Digite o nome do cliente" required>
-                <button type="submit">Cadastrar</button>
+                    <label for="client-name">Nome do Cliente:</label>
+                    <input type="text" id="client-name" name="nome" placeholder="Digite o nome do cliente" required>
 
-            </form>
+                    <label for="client-cnpj">CNPJ:</label>
+                    <input type="text" id="client-cnpj" name="cnpj" placeholder="Digite o CNPJ do cliente" required>
+
+                    <button class="BtnCadastrar" type="submit">Cadastrar</button>
+
+                    <div id="message" class="message"></div>
+                </form>
+            </div>
+            <div class="cliente-pesquisa">
+                <h2>Pesquisar Cliente</h2>
+                <form class="search-form" id="search-form">
+                    <label for="search-name">Nome do Cliente:</label>
+                    <input type="text" id="search-name" name="search-name"
+                        placeholder="Digite o nome do cliente para pesquisa">
+
+                    <label for="search-cnpj">CNPJ:</label>
+                    <input type="text" id="search-cnpj" name="search-cnpj" placeholder="Digite o CNPJ para pesquisa">
+
+                </form>
+
+                <div class="resultado-pesquisa">
+                    <% if (clients.length> 0) { %>
+                        <ul>
+                            <% clients.forEach(client=> { %>
+                                <li data-id="<%= client.id_cliente %>">
+                                    Nome: <%= client.nome %>, CNPJ: <%= client.cnpj %>
+                                            <button type="button" class="edit-button"
+                                                onclick="editClient('<%= client.id_cliente %>')">
+                                                <img src="/images/edit.png" alt="Editar">
+                                            </button>
+                                            <button type="button" class="delete-button"
+                                                data-id="<%= client.id_cliente %>" onclick="deleteClient(this)">
+                                                <img src="/images/delete.png" alt="Excluir">
+                                            </button>
+
+
+                                            <div class="edit-section" style="display: none;">
+                                                <label for="edit-client-name">Nome do Cliente:</label>
+                                                <input type="text" class="edit-client-name"
+                                                    name="nomeedit"
+                                                    placeholder="Digite o nome do cliente" 
+                                                    value="<%= client.nome %>" 
+                                                    required>
+                        
+                                                <label for="edit-client-cnpj">CNPJ:</label>
+                                                <input type="text" class="edit-client-cnpj"
+                                                    name="cnpjedit"
+                                                    placeholder="Digite o CNPJ do cliente" 
+                                                    value="<%= client.cnpj %>" 
+                                                    required>
+                        
+                                                <button type="button" onclick="saveClient(this)">Salvar</button>
+                                            </div>
+                                </li>
+                                <% }); %>
+                        </ul>
+                        <% } else { %>
+                            <p>Nenhum cliente encontrado.</p>
+                            <% } %>
+                </div>
+
+            </div>
+
 
         </main>
 </body>

@@ -44,3 +44,16 @@ input, textarea, select {
     border-radius: 15px;
 }
 
+.BtnEnviar {
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.toggle-btn{
+    display: none;
+}
+
+aside{
+    display: none;
+}
+

@@ -1,0 +1,100 @@
+aside {
+    position: fixed;
+    display: block;
+    top: 0;
+    left: -100%;
+    width: calc(100% - 40px);
+    height: 100%;
+    background-color: #333333;
+    transition: left 0.3s;
+    z-index: 2;
+  }
+  
+  .navbar,
+  .navbar-index,
+  header {
+    display: none;
+  }
+  
+  .toggle-btn {
+    display: block;
+    position: fixed;
+    top: 30px;
+    left: 0;
+    width: 40px;
+    height: 40px;
+    background: #333333;
+    color: #fff;
+    border-radius: 0;
+    font-size: 0;
+    text-align: center;
+    line-height: 40px;
+    cursor: pointer;
+    z-index: 2;
+    transition: left 0.3s;
+  }
+  
+  aside ul li {
+    width: 100%;
+    height: 50px;
+    /*border-radius: 10px;*/
+    cursor: pointer;
+  }
+  
+  aside ul li:hover {
+    background-color: #555555;
+  }
+  
+  .toggle-btn span {
+    width: 80%;
+    height: 3px;
+    margin: 4px auto;
+    background: #fff;
+    display: block;
+   /* margin-top: 8px;*/
+   /* transition: transform 0.3s;*/
+  }
+  
+  aside.active {
+    left: 0;
+  }
+  
+  aside ul li a {
+    font-size: 16px;
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    height: 100%;
+    /*width: 100%;*/
+    align-items: center;
+    justify-content: center;
+  }
+  
+  aside ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  @media screen and (max-width: 480px) {
+  
+    aside {
+      width: calc(100% - 40px);
+    }
+  
+    aside.active~.toggle-btn {
+      left: calc(100% - 40px);
+    }
+  }
+  
+  @media screen and (min-width: 481px) and (max-width: 768px) {
+    aside {
+      width: calc(50% - 40px);
+    }
+  
+    aside.active~.toggle-btn {
+      left: calc(50% - 40px);
+    }
+  }

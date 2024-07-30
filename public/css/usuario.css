@@ -24,3 +24,8 @@ input, textarea, select {
     padding: 8px;
     border-radius: 15px;
 }
+
+button {
+    padding: 10px 20px;
+    cursor: pointer;
+}

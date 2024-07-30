@@ -14,8 +14,8 @@
 
   nav{
     display: flex;
-    justify-content: flex-start;
   }
+
   
   .profile-image {
     width: 30px;

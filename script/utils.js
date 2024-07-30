@@ -1,5 +1,7 @@
 const searchBox = document.querySelector('.search-box');
 const suggestionList = document.querySelector('.suggestion-list');
+const aside = document.querySelector('aside');
+const toggleBtn = document.querySelector('.toggle-btn');
 
 document.querySelectorAll('.submenu').forEach(menu => {
     console.log("cheguei aqui!!!")
@@ -11,10 +13,19 @@ document.querySelectorAll('.submenu').forEach(menu => {
     });
   });
 
-  clearButton.addEventListener('click', () => {
+  /*clearButton.addEventListener('click', () => {
     clearButton.style.display = 'none';
     searchBox.value = '';
     suggestionList.style.display = 'none';
+  });*/
+
+  toggleBtn.addEventListener('click', function () {
+    aside.classList.toggle('active');
+    toggleBtn.classList.toggle('active');
+    const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+  
+    toggleBtn.setAttribute('aria-expanded', !isExpanded);
+    aside.hidden = isExpanded;
   });
 
   searchBox.addEventListener('input', async function () {
