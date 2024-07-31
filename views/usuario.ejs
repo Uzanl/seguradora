@@ -4,42 +4,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+    content="Página para cadastro pesquisa e alteração dos dados de usuários.">
     <link rel="preload" href="/css/navbar.css" as="style">
     <link rel="preload" href="/css/usuario.css" as="style">
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/usuario.css">
     <script src="/script/utils.js" defer></script>
+    <script src="/script/usuario.js" defer></script>
     <title>Cadastro de Usuário</title>
 </head>
 
 <body>
     <%- include('partials/header') %>
         <main>
-            <form class="user-form" id="user-form">
+            <div class="cadastro-form">
+                <form class="user-form" id="user-form">
+                    <label for="user-type">Tipo de Usuário:</label>
+                    <select id="user-type" name="user-type" required>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Funcionário">Funcionário</option>
+                    </select>
 
-                <label for="user-type">Tipo de Usuário:</label>
-                <select id="user-type" name="user-type" required>
-                    <option value="admin">Administrador</option>
-                    <option value="employee">Funcionário</option>
-                </select>
+                    <label for="login">Login:</label>
+                    <input type="text" id="login" name="login" oninput="validateInput(this)" maxlength="12"
+                        placeholder="Digite o login" required>
+
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" maxlength="16" placeholder="Digite a senha"
+                        required>
+                    <div id="password-feedback" class="feedback"></div>
+
+                    <label for="confirm-password">Confirmação da Senha:</label>
+                    <input type="password" id="confirm-password" name="confirm-password" maxlength="16"
+                        placeholder="Confirme a senha" required>
+                    <div id="confirm-password-feedback" class="feedback"></div>
+
+                    <button class="BtnCadastrar" type="submit">Cadastrar</button>
+                    <div id="message" class="message"></div>
+                </form>
+            </div>
 
 
-                <label for="login">Login:</label>
-                <input type="text" id="login" name="login" placeholder="Digite o login" required>
+            <div class="usuario-pesquisa">
+                <h2>Pesquisar Usuário</h2>
+                <form class="search-form" id="search-form">
+                    <label for="search-name">Nome do Usuario:</label>
+                    <input type="text" id="search-name" name="search-name"
+                        placeholder="Digite o nome do usuario para pesquisa">
+                    <label for="search-user-type">Tipo de Usuário:</label>
+                    <select id="search-user-type" name="search-user-type" required>
+                        <option value="">Selecione um Cargo</option>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Funcionário">Funcionário</option>
+                    </select>
 
 
-                <label for="password">Senha:</label>
-                <input type="password" id="password" name="password" placeholder="Digite a senha" required>
+                </form>
 
+                <div class="resultado-pesquisa">
+                    <% if (users.length> 0) { %>
+                        <ul>
+                            <% users.forEach(user=> { %>
+                                <li data-id="<%= user.id_usu %>">
+                                    Login: <%= user.login_usu %>, Cargo: <%= user.tipo %>
+                                            <button type="button" class="edit-button"
+                                                onclick="editUser('<%= user.id_usu %>')">
+                                                <img src="/images/edit.png" alt="Editar">
+                                            </button>
+                                            <button type="button" class="delete-button" data-id="<%= user.id_usu %>"
+                                                onclick="deleteUser(this)">
+                                                <img src="/images/delete.png" alt="Excluir">
+                                            </button>
 
-                <label for="confirm-password">Confirmação da Senha:</label>
-                <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirme a senha"
-                    required>
+                                            <div class="edit-section" style="display: none;">
+                                                <label for="edit-login">Login:</label>
+                                                <input type="text" id="edit-login" placeholder="Login" required value="<%= user.login_usu %>">
+                                            
+                                                <label for="edit-password">Senha:</label>
+                                                <input type="password" id="edit-password" placeholder="Senha" required value="<%= user.senha_usu %>">
+                                            
+                                                <label for="edit-confirmPassword">Confirmar Senha:</label>
+                                                <input type="password" id="edit-confirmPassword" placeholder="Confirmar Senha" required value="<%= user.senha_usu %>">
+                                            
+                                                <label for="edit-user-type">Tipo de Usuário:</label>
+                                                <select id="edit-user-type" required>
+                                                    <option value="Administrador" <%= user.tipo === 'Administrador' ? 'selected' : '' %>>Administrador</option>
+                                                    <option value="Funcionário" <%= user.tipo === 'Funcionário' ? 'selected' : '' %>>Funcionário</option>
+                                                </select>
+                                            
+                                                <button type="button" onclick="saveUser()">Salvar</button>
+                                            </div>
+                                </li>
+                                <% }); %>
+                        </ul>
+                        <% } else { %>
+                            <p>Nenhum usuário encontrado.</p>
+                            <% } %>
+                </div>
 
+            </div>
 
-                <button type="submit">Cadastrar</button>
-
-            </form>
         </main>
 </body>
 

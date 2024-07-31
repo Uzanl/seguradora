@@ -21,8 +21,8 @@ document.getElementById('client-form').addEventListener('submit', async function
 
     // Função de validação do nome do cliente
     function isValidName(name) {
-        // Permite letras, espaços e alguns caracteres especiais
-        const namePattern = /^[A-Za-z\s'-]+$/;
+        // Permite letras, números, espaços e caracteres especiais comuns em português
+        const namePattern = /^[A-Za-z0-9\sçÇáàãâéèêíìîóòõôú'-]+$/;
         return namePattern.test(name);
     }
 
@@ -80,7 +80,7 @@ async function updateClientList() {
                 const li = document.createElement('li');
                 li.setAttribute('data-id', client.id_cliente);
                 li.innerHTML = `
-                    Nome: ${client.nome}, CNPJ: ${client.cnpj}
+                    Nome: ${client.nome}, CNPJ: ${formatCNPJ(client.cnpj)}
                     <button type="button" class="edit-button" onclick="editClient(${client.id_cliente})">
                         <img src="/images/edit.png" alt="Editar">
                     </button>
@@ -98,8 +98,8 @@ async function updateClientList() {
                 ul.appendChild(li);
             });
             resultDiv.appendChild(ul);
-              // Reaplicar máscara após atualizar a lista
-              $('.edit-client-cnpj').mask('00.000.000/0000-00');
+            // Reaplicar máscara após atualizar a lista
+            $('.edit-client-cnpj').mask('00.000.000/0000-00');
         } else {
             resultDiv.innerHTML = '<p>Nenhum cliente encontrado.</p>';
         }
@@ -162,7 +162,7 @@ async function searchClients() {
                 const li = document.createElement('li');
                 li.setAttribute('data-id', client.id_cliente);
                 li.innerHTML = `
-                    Nome: ${client.nome}, CNPJ: ${client.cnpj}
+                    Nome: ${client.nome}, CNPJ: ${formatCNPJ(client.cnpj)}
                     <button type="button" class="edit-button" onclick="editClient(${client.id_cliente})">
                         <img src="/images/edit.png" alt="Editar">
                     </button>
@@ -180,8 +180,8 @@ async function searchClients() {
                 ul.appendChild(li);
             });
             clientList.appendChild(ul);
-              // Reaplicar máscara após atualizar a lista
-              $('.edit-client-cnpj').mask('00.000.000/0000-00');
+            // Reaplicar máscara após atualizar a lista
+            $('.edit-client-cnpj').mask('00.000.000/0000-00');
         } else {
             clientList.innerHTML = '<p>Nenhum cliente encontrado.</p>';
         }
@@ -243,5 +243,9 @@ async function saveClient(button) {
         console.error('Erro ao enviar a solicitação de atualização:', err);
         alert('Erro ao atualizar cliente.');
     }
+}
+
+function formatCNPJ(cnpj) {
+    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }
 

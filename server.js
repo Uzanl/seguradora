@@ -59,6 +59,7 @@ connection.connect((err) => {
 
 app.set('view engine', 'ejs');
 
+
 app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
     res.render('ocorrencia.ejs')
 }));
@@ -73,6 +74,10 @@ app.get('/cliente', asyncHandler(async (req, res, next) => {
         if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
             res.json(clients); // Retorna os dados como JSON
         } else {
+            // Formate o CNPJ de cada cliente
+            clients.forEach(client => {
+                client.formattedCNPJ = formatCNPJ(client.cnpj);
+            });
             res.render('cliente.ejs', { clients }); // Renderiza a página com os dados
         }
     } catch (err) {
@@ -81,34 +86,53 @@ app.get('/cliente', asyncHandler(async (req, res, next) => {
     }
 }));
 
+// Função para formatar o CNPJ
+function formatCNPJ(cnpj) {
+    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+}
+
 
 app.get('/usuario', asyncHandler(async (req, res, next) => {
-    res.render('usuario.ejs')
+    try {
+        const query = promisify(connection.query).bind(connection);
+        const selectQuery = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario ORDER BY id_usu DESC LIMIT 50';
+        const users = await query(selectQuery);
+
+        // Verifica se a solicitação é para JSON (feita via fetch)
+        if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
+            res.json(users); // Retorna os dados como JSON
+        } else {
+
+            res.render('usuario.ejs', { users }); // Renderiza a página com os dados
+        }
+    } catch (err) {
+        console.error('Erro ao buscar clientes:', err);
+        next(err); // Passa o erro para o middleware de tratamento de erros
+    }
 }));
 
 app.get('/login', asyncHandler(async (req, res, next) => {
     res.render('login.ejs')
 }));
 
-app.delete('/delete-client/:id', (req, res) => {
+app.delete('/delete-client/:id', async (req, res) => {
     const clientId = req.params.id;
 
-    // Conectar ao banco de dados e executar a consulta
-    const query = promisify(connection.query).bind(connection);
-    const deleteQuery = 'DELETE FROM cliente WHERE id_cliente = ?';
+    try {
+        // Conectar ao banco de dados e executar a consulta
+        const query = promisify(connection.query).bind(connection);
+        const deleteQuery = 'DELETE FROM cliente WHERE id_cliente = ?';
+        const result = await query(deleteQuery, [clientId]);
 
-    query(deleteQuery, [clientId])
-        .then(result => {
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ error: 'Cliente não encontrado.' });
-            }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado.' });
+        }
 
-            res.status(200).json({ message: 'Cliente excluído com sucesso.' });
-        })
-        .catch(err => {
-            console.error('Erro ao excluir cliente:', err);
-            res.status(500).json({ error: 'Erro ao excluir cliente.' });
-        });
+        res.status(200).json({ message: 'Cliente excluído com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao excluir cliente:', err);
+        res.status(500).json({ error: 'Erro ao excluir cliente.' });
+    }
 });
 
 app.post('/insert-client', async (req, res) => {
@@ -133,7 +157,7 @@ app.post('/insert-client', async (req, res) => {
     }
 
     // Limpeza e validação do nome
-    const namePattern = /^[A-Za-z\s'-]+$/;
+    const namePattern = /^[A-Za-z0-9\sçÇáàãâéèêíìîóòõôú'-]+$/;
     if (!namePattern.test(nome)) {
         return res.status(400).json({ error: 'Nome do cliente contém caracteres inválidos. Apenas letras, espaços e alguns caracteres especiais são permitidos.' });
     }
@@ -210,6 +234,77 @@ app.put('/update-client/:id', asyncHandler(async (req, res) => {
         res.status(500).json({ error: 'Erro ao atualizar cliente.' });
     }
 }));
+
+
+
+app.post('/insert-user', async (req, res) => {
+    const { login, password, userType } = req.body;
+
+    // Verificação dos campos obrigatórios
+    const missingFields = [];
+
+    if (!login) missingFields.push('Login');
+    if (!password) missingFields.push('Senha');
+    if (!userType) missingFields.push('Tipo de Usuário');
+
+    if (missingFields.length > 0) {
+        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+        return res.status(400).json({ error: errorMessage });
+    }
+
+    // Validação do login
+    if (!/^[A-Za-z]{1,12}$/.test(login)) {
+        return res.status(400).json({ error: 'Login deve ter no máximo 12 letras e conter apenas letras.' });
+    }
+
+    // Validação da senha
+    if (password.length > 16 || !/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/.test(password)) {
+        return res.status(400).json({
+            error: 'A senha deve ter no máximo 16 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.'
+        });
+    }
+
+    try {
+        // Conecte-se ao banco de dados e insira o usuário
+        const query = promisify(connection.query).bind(connection);
+        const insertQuery = 'INSERT INTO usuario (login_usu, senha_usu, tipo) VALUES (?, ?, ?)';
+        await query(insertQuery, [login, password, userType]);
+
+        res.status(200).json({ message: 'Usuário cadastrado com sucesso.' });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+            console.log("Cheguei aqui!!!")
+            // Trata o erro de entrada duplicada
+            return res.status(400).json({ error: 'Login já cadastrado no sistema.' });
+        } else {
+            console.error('Erro ao cadastrar usuário:', err);
+            res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
+        }
+    }
+});
+
+app.delete('/delete-user/:id', async (req, res) => {
+    const userId = req.params.id;
+
+    try {
+        // Conectar ao banco de dados e executar a consulta
+        const query = promisify(connection.query).bind(connection);
+        const deleteQuery = 'DELETE FROM usuario WHERE id_usu = ?';
+        const result = await query(deleteQuery, [userId]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        res.status(200).json({ message: 'Usuário excluído com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao excluir usuário:', err);
+        res.status(500).json({ error: 'Erro ao excluir usuário.' });
+    }
+});
+
+
+
 
 // Middleware de Tratamento de Erros Global
 app.use((err, req, res, next) => {
