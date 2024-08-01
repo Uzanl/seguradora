@@ -106,7 +106,7 @@ app.get('/usuario', asyncHandler(async (req, res, next) => {
             res.render('usuario.ejs', { users }); // Renderiza a página com os dados
         }
     } catch (err) {
-        console.error('Erro ao buscar clientes:', err);
+        console.error('Erro ao buscar usuários:', err);
         next(err); // Passa o erro para o middleware de tratamento de erros
     }
 }));
@@ -201,8 +201,28 @@ app.get('/search-client', async (req, res) => {
     }
 });
 
+app.get('/search-user', async (req, res) => {
+    const { login, tipo } = req.query;
+
+    try {
+        const query = promisify(connection.query).bind(connection);
+        const searchQuery = `
+            SELECT id_usu, login_usu, tipo 
+            FROM usuario 
+            WHERE login_usu LIKE ? AND tipo LIKE ?
+            ORDER BY id_usu DESC
+            LIMIT 50
+        `;
+        const users = await query(searchQuery, [`%${login}%`, `%${tipo}%`]);
+
+        res.json(users);
+    } catch (err) {
+        console.error('Erro ao buscar usuários:', err);
+        res.status(500).json({ error: 'Erro ao buscar usuários.' });
+    }
+});
+
 app.put('/update-client/:id', asyncHandler(async (req, res) => {
-    console.log("cheguei aqui!!!")
     const clientId = req.params.id;
     const { nomeedit, cnpjedit } = req.body;
 
@@ -235,7 +255,53 @@ app.put('/update-client/:id', asyncHandler(async (req, res) => {
     }
 }));
 
+app.put('/update-user/:id', asyncHandler(async (req, res) => {
+    const userId = req.params.id;
+    const { loginedit, senhaedit, confirmarsenhaedit, tipoedit } = req.body;
 
+    // Verificação dos campos obrigatórios
+    const missingFields = [];
+
+    if (!loginedit) missingFields.push('Login');
+    if (!senhaedit) missingFields.push('Senha');
+    if (!confirmarsenhaedit) missingFields.push('Confirmar Senha');
+    if (!tipoedit) missingFields.push('Tipo de Usuário');
+
+    if (missingFields.length > 0) {
+        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+        return res.status(400).json({ error: errorMessage });
+    }
+
+    // Validação da senha
+    if (senhaedit !== confirmarsenhaedit) {
+        return res.status(400).json({ error: 'Senhas não coincidem.' });
+    }
+
+    // Validação do tipo de usuário
+    const validUserTypes = ['Administrador', 'Funcionário'];
+    if (!validUserTypes.includes(tipoedit)) {
+        return res.status(400).json({ error: 'Tipo de usuário inválido.' });
+    }
+
+    try {
+        const query = promisify(connection.query).bind(connection);
+        const updateQuery = `
+            UPDATE usuario 
+            SET login_usu = ?, senha_usu = ?, tipo = ? 
+            WHERE id_usu = ?
+        `;
+        const result = await query(updateQuery, [loginedit, senhaedit, tipoedit, userId]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        res.status(200).json({ message: 'Usuário atualizado com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao atualizar usuário:', err);
+        res.status(500).json({ error: 'Erro ao atualizar usuário.' });
+    }
+}));
 
 app.post('/insert-user', async (req, res) => {
     const { login, password, userType } = req.body;
@@ -302,9 +368,6 @@ app.delete('/delete-user/:id', async (req, res) => {
         res.status(500).json({ error: 'Erro ao excluir usuário.' });
     }
 });
-
-
-
 
 // Middleware de Tratamento de Erros Global
 app.use((err, req, res, next) => {

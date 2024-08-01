@@ -70,45 +70,47 @@ async function updateClientList() {
             }
         });
         const clients = await response.json();
-
-        const resultDiv = document.querySelector('.resultado-pesquisa');
-        resultDiv.innerHTML = ''; // Limpa a lista anterior
-
-        if (clients.length > 0) {
-            const ul = document.createElement('ul');
-            clients.forEach(client => {
-                const li = document.createElement('li');
-                li.setAttribute('data-id', client.id_cliente);
-                li.innerHTML = `
-                    Nome: ${client.nome}, CNPJ: ${formatCNPJ(client.cnpj)}
-                    <button type="button" class="edit-button" onclick="editClient(${client.id_cliente})">
-                        <img src="/images/edit.png" alt="Editar">
-                    </button>
-                    <button type="button" class="delete-button" data-id="${client.id_cliente}" onclick="deleteClient(this)">
-                        <img src="/images/delete.png" alt="Excluir">
-                    </button>
-                    <div class="edit-section" style="display: none;">
-                        <label for="edit-client-name">Nome do Cliente:</label>
-                        <input type="text" class="edit-client-name" name="nomeedit" placeholder="Digite o nome do cliente" value="${client.nome}" required>
-                        <label for="edit-client-cnpj">CNPJ:</label>
-                        <input type="text" class="edit-client-cnpj" name="cnpjedit" placeholder="Digite o CNPJ do cliente" value="${client.cnpj}" required>
-                        <button type="button" onclick="saveClient(this)">Salvar</button>
-                    </div>
-                `;
-                ul.appendChild(li);
-            });
-            resultDiv.appendChild(ul);
-            // Reaplicar máscara após atualizar a lista
-            $('.edit-client-cnpj').mask('00.000.000/0000-00');
-        } else {
-            resultDiv.innerHTML = '<p>Nenhum cliente encontrado.</p>';
-        }
+        renderClientList(clients);
     } catch (err) {
         console.error('Erro ao atualizar a lista de clientes:', err);
     }
 }
 
+// Função para renderizar a lista de clientes
+function renderClientList(clients) {
+    const resultDiv = document.querySelector('.resultado-pesquisa');
+    resultDiv.innerHTML = ''; // Limpa a lista anterior
 
+    if (clients.length > 0) {
+        const ul = document.createElement('ul');
+        clients.forEach(client => {
+            const li = document.createElement('li');
+            li.setAttribute('data-id', client.id_cliente);
+            li.innerHTML = `
+                Nome: ${client.nome}, CNPJ: ${formatCNPJ(client.cnpj)}
+                <button type="button" class="edit-button" onclick="editClient(${client.id_cliente})">
+                    <img src="/images/edit.png" alt="Editar">
+                </button>
+                <button type="button" class="delete-button" data-id="${client.id_cliente}" onclick="deleteClient(this)">
+                    <img src="/images/delete.png" alt="Excluir">
+                </button>
+                <div class="edit-section" style="display: none;">
+                    <label for="edit-client-name">Nome do Cliente:</label>
+                    <input type="text" class="edit-client-name" name="nomeedit" placeholder="Digite o nome do cliente" value="${client.nome}" required>
+                    <label for="edit-client-cnpj">CNPJ:</label>
+                    <input type="text" class="edit-client-cnpj" name="cnpjedit" placeholder="Digite o CNPJ do cliente" value="${formatCNPJ(client.cnpj)}" required>
+                    <button type="button" onclick="saveClient(this)">Salvar</button>
+                </div>
+            `;
+            ul.appendChild(li);
+        });
+        resultDiv.appendChild(ul);
+        // Reaplicar máscara após atualizar a lista
+        $('.edit-client-cnpj').mask('00.000.000/0000-00');
+    } else {
+        resultDiv.innerHTML = '<p>Nenhum cliente encontrado.</p>';
+    }
+}
 
 // Função para excluir um cliente
 async function deleteClient(buttonElement) {
@@ -153,43 +155,11 @@ async function searchClients() {
         }
 
         const clients = await response.json();
-        const clientList = document.querySelector('.resultado-pesquisa');
-        clientList.innerHTML = '';
-
-        if (clients.length > 0) {
-            const ul = document.createElement('ul');
-            clients.forEach(client => {
-                const li = document.createElement('li');
-                li.setAttribute('data-id', client.id_cliente);
-                li.innerHTML = `
-                    Nome: ${client.nome}, CNPJ: ${formatCNPJ(client.cnpj)}
-                    <button type="button" class="edit-button" onclick="editClient(${client.id_cliente})">
-                        <img src="/images/edit.png" alt="Editar">
-                    </button>
-                    <button type="button" class="delete-button" data-id="${client.id_cliente}" onclick="deleteClient(this)">
-                        <img src="/images/delete.png" alt="Excluir">
-                    </button>
-                    <div class="edit-section" style="display: none;">
-                        <label for="edit-client-name">Nome do Cliente:</label>
-                        <input type="text" class="edit-client-name" name="nomeedit" placeholder="Digite o nome do cliente" value="${client.nome}" required>
-                        <label for="edit-client-cnpj">CNPJ:</label>
-                        <input type="text" class="edit-client-cnpj" name="cnpjedit" placeholder="Digite o CNPJ do cliente" value="${client.cnpj}" required>
-                        <button type="button" onclick="saveClient(this)">Salvar</button>
-                    </div>
-                `;
-                ul.appendChild(li);
-            });
-            clientList.appendChild(ul);
-            // Reaplicar máscara após atualizar a lista
-            $('.edit-client-cnpj').mask('00.000.000/0000-00');
-        } else {
-            clientList.innerHTML = '<p>Nenhum cliente encontrado.</p>';
-        }
+        renderClientList(clients);
     } catch (err) {
         console.error('Erro ao buscar clientes:', err);
     }
 }
-
 
 // Função para alternar a exibição da seção de edição
 function editClient(clientId) {
@@ -233,9 +203,6 @@ async function saveClient(button) {
         if (response.ok) {
             alert('Cliente atualizado com sucesso.');
             updateClientList();
-            //listItem.querySelector('.client-name').textContent = clientName;
-            //listItem.querySelector('.client-cnpj').textContent = clientCnpj;
-            // editClient(clientId); // Oculta a seção de edição após salvar
         } else {
             alert('Erro ao atualizar cliente: ' + result.error);
         }
@@ -248,4 +215,3 @@ async function saveClient(button) {
 function formatCNPJ(cnpj) {
     return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }
-

@@ -72,5 +72,35 @@ select {
 
 .BtnCadastrar {
     padding: 10px 20px;
+    border-radius: 15px;
+}
+
+button{
     cursor: pointer;
+}
+
+.input-container {
+    position: relative;
+}
+
+.input-container input {
+    width: calc(100% - 20px);
+
+}
+
+/* Remove o ícone de visibilidade de senha padrão */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
+
+.input-container .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
 }
