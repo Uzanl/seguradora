@@ -240,9 +240,13 @@ async function updateUserList() {
     }
 }
 
+// Adicione event listeners para os campos de pesquisa
+document.getElementById('search-name').addEventListener('input', searchUsers);
+document.getElementById('search-user-type').addEventListener('input', searchUsers);
+
 async function searchUsers() {
-    const login = document.getElementById('search-login').value;
-    const tipo = document.getElementById('search-tipo').value;
+    const login = document.getElementById('search-name').value;
+    const tipo = document.getElementById('search-user-type').value;
 
     try {
         const response = await fetch(`/search-user?login=${encodeURIComponent(login)}&tipo=${encodeURIComponent(tipo)}`);
