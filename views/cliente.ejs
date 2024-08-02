@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-    content="Página para cadastro pesquisa e alteração dos dados de clientes.">
+    <meta name="description" content="Página para cadastro pesquisa e alteração dos dados de clientes.">
     <link rel="preload" href="/css/navbar.css" as="style">
     <link rel="preload" href="/css/cliente.css" as="style">
     <link rel="stylesheet" href="/css/navbar.css">
@@ -26,8 +25,9 @@
                     <label for="client-name">Nome do Cliente:</label>
                     <input type="text" id="client-name" name="nome" placeholder="Digite o nome do cliente" required>
 
-                    <label for="client-cnpj">CNPJ:</label>
-                    <input type="text" id="client-cnpj" name="cnpj" placeholder="Digite o CNPJ do cliente" required>
+                    <label for="cnpj">CNPJ:</label>
+                    <input type="text" id="cnpj" name="cnpj" class="cnpj" placeholder="Digite o CNPJ do cliente"
+                        required>
 
                     <button class="BtnCadastrar" type="submit">Cadastrar</button>
 
@@ -42,7 +42,8 @@
                         placeholder="Digite o nome do cliente para pesquisa">
 
                     <label for="search-cnpj">CNPJ:</label>
-                    <input type="text" id="search-cnpj" name="search-cnpj" placeholder="Digite o CNPJ para pesquisa">
+                    <input type="text" id="search-cnpj" class="cnpj" name="search-cnpj"
+                        placeholder="Digite o CNPJ para pesquisa">
 
                 </form>
 
@@ -52,32 +53,27 @@
                             <% clients.forEach(client=> { %>
                                 <li data-id="<%= client.id_cliente %>">
                                     Nome: <%= client.nome %>, CNPJ: <%= client.formattedCNPJ %>
-                                            <button type="button" class="edit-button"
-                                                onclick="editClient('<%= client.id_cliente %>')">
-                                                <img src="/images/edit.png" alt="Editar">
+                                            <button type="button" class="edit-button">
+                                                <img width="30" height="30" src="/images/edit.png" alt="Editar">
                                             </button>
                                             <button type="button" class="delete-button"
-                                                data-id="<%= client.id_cliente %>" onclick="deleteClient(this)">
-                                                <img src="/images/delete.png" alt="Excluir">
+                                                data-id="<%= client.id_cliente %>">
+                                                <img width="30" height="30" src="/images/delete.png" alt="Excluir">
                                             </button>
 
 
-                                            <div class="edit-section" style="display: none;">
-                                                <label for="edit-client-name">Nome do Cliente:</label>
-                                                <input type="text" class="edit-client-name"
-                                                    name="nomeedit"
-                                                    placeholder="Digite o nome do cliente" 
-                                                    value="<%= client.nome %>" 
-                                                    required>
-                        
-                                                <label for="edit-client-cnpj">CNPJ:</label>
-                                                <input type="text" class="edit-client-cnpj"
-                                                    name="cnpjedit"
-                                                    placeholder="Digite o CNPJ do cliente" 
-                                                    value="<%= client.cnpj %>" 
-                                                    required>
-                        
-                                                <button type="button" onclick="saveClient(this)">Salvar</button>
+                                            <div class="edit-section">
+                                                <label for="edit-name-<%= client.id_cliente %>">Nome do Cliente:</label>
+                                                <input type="text" id="edit-name-<%= client.id_cliente %>"
+                                                    name="nomeedit" placeholder="Digite o nome do cliente"
+                                                    value="<%= client.nome %>" required>
+
+                                                <label for="edit-cnpj-<%= client.id_cliente %>">CNPJ:</label>
+                                                <input type="text" id="edit-cnpj-<%= client.id_cliente %>" class="cnpj"
+                                                    name="cnpjedit" placeholder="Digite o CNPJ do cliente"
+                                                    value="<%= client.cnpj %>" required>
+
+                                                <button type="button" class="save-button">Salvar</button>
                                             </div>
                                 </li>
                                 <% }); %>
@@ -88,8 +84,6 @@
                 </div>
 
             </div>
-
-
         </main>
 </body>
 

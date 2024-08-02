@@ -207,7 +207,7 @@ app.get('/search-user', async (req, res) => {
     try {
         const query = promisify(connection.query).bind(connection);
         const searchQuery = `
-            SELECT id_usu, login_usu, tipo 
+            SELECT id_usu, login_usu, tipo, senha_usu
             FROM usuario 
             WHERE login_usu LIKE ? AND tipo LIKE ?
             ORDER BY id_usu DESC
