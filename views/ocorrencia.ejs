@@ -11,8 +11,13 @@
     <link rel="preload" href="/css/mobile-sidebar.css" as="style">
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/ocorrencia.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/mobile-sidebar.css" media="(max-width: 768px)">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
     <script src="/script/utils.js" defer></script>
+    <script src="/script/ocorrencia.js" defer></script>
     <title>Formulário de Ocorrências</title>
 </head>
 
@@ -21,40 +26,42 @@
         <%- include('partials/sidebar') %>
             <main>
 
-                <form form class="form-editor" id="ocorrencia-form">
+                <form class="form-editor" id="ocorrencia-form">
                     <label for="placa-veiculo">Placa do Veículo:</label>
-                    <input type="text" id="placa-veiculo" placeholder="Digite a placa do veículo" name="placa-veiculo"
+                    <input type="text" id="placa-veiculo" name="placaVeiculo" placeholder="Digite a placa do veículo"
                         required>
 
                     <label for="placa-carreta">Placa da Carreta:</label>
-                    <input type="text" id="placa-carreta" placeholder="Digite a placa da carreta" name="placa-carreta"
+                    <input type="text" id="placa-carreta" name="placaCarreta" placeholder="Digite a placa da carreta"
                         required>
-                    <div class="search-container">
-                        <label for="nome-cliente">Nome do Cliente:</label>
-                        <input type="text" id="nome-cliente" class="search-box" placeholder="Digite o nome do cliente"
-                            name="nome-cliente" required>
-                        <ul id="combo-list" class="suggestion-list"></ul>
-                    </div>
 
+                    <label for="id-cliente">Nome do Cliente:</label>
+                    <select id="id-cliente" class="select-client" name="idCliente" required>
+                        <option value="" disabled selected>Selecione um cliente</option>
+                        <% clients.forEach(function(client) { %>
+                            <option value="<%= client.id_cliente %>">
+                                <%= client.nome %>
+                            </option>
+                            <% }); %>
+                    </select>
 
                     <label for="nome-motorista">Nome do Motorista:</label>
-                    <input type="text" id="nome-motorista" placeholder="Digite o nome do motorista"
-                        name="nome-motorista" required>
+                    <input type="text" id="nome-motorista" name="nomeMotorista" placeholder="Digite o nome do motorista"
+                        required>
 
                     <label for="descricao">Descrição:</label>
-                    <textarea id="descricao" placeholder="Digite a descrição da ocorrência" name="descricao" rows="4"
+                    <textarea id="descricao" name="descricao" placeholder="Digite a descrição da ocorrência" rows="4"
                         required></textarea>
 
                     <label for="status">Status:</label>
                     <select id="status" name="status" required>
-                        <option value="resolvido">Resolvido</option>
-                        <option value="pendente">Pendente</option>
-                        <option value="nao-resolvido">Não Resolvido</option>
+                        <option value="Resolvido">Resolvido</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Não Resolvido">Não Resolvido</option>
                     </select>
 
                     <button class="BtnEnviar" type="submit">Enviar</button>
                 </form>
-
                 <div class="ocorrencia">
 
                 </div>

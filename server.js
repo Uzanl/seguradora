@@ -61,7 +61,16 @@ app.set('view engine', 'ejs');
 
 
 app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
-    res.render('ocorrencia.ejs')
+    try {
+        const query = promisify(connection.query).bind(connection);
+        const selectQuery = 'SELECT id_cliente, nome FROM cliente';
+        const rows = await query(selectQuery);
+
+        res.render('ocorrencia.ejs', { clients: rows });
+    } catch (err) {
+        console.error('Erro ao buscar clientes:', err);
+        next(err); // Passa o erro para o middleware de tratamento de erros
+    }
 }));
 
 app.get('/cliente', asyncHandler(async (req, res, next) => {
@@ -90,7 +99,6 @@ app.get('/cliente', asyncHandler(async (req, res, next) => {
 function formatCNPJ(cnpj) {
     return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }
-
 
 app.get('/usuario', asyncHandler(async (req, res, next) => {
     try {
@@ -180,6 +188,54 @@ app.post('/insert-client', async (req, res) => {
     }
 });
 
+app.post('/insert-ocorrencia', async (req, res) => {
+    console.log("cheguei aqui!!!!")
+    const { placaVeiculo, placaCarreta, idCliente, nomeMotorista, descricao, status } = req.body;
+
+    // Verificação dos campos obrigatórios
+    const missingFields = [];
+
+    if (!placaVeiculo) missingFields.push('Placa do Veículo');
+    if (!placaCarreta) missingFields.push('Placa da Carreta');
+    if (!idCliente) missingFields.push('ID do Cliente');
+    if (!nomeMotorista) missingFields.push('Nome do Motorista');
+    if (!descricao) missingFields.push('Descrição');
+    if (!status) missingFields.push('Status');
+
+    if (missingFields.length > 0) {
+        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+        return res.status(400).json({ error: errorMessage });
+    }
+
+    // Validação das placas (exemplo de regex para placas no formato Mercosul e antigo)
+    const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/; // Adapte conforme necessário
+    if (!placaRegex.test(placaVeiculo)) {
+        return res.status(400).json({ error: 'Placa do Veículo inválida.' });
+    }
+    if (!placaRegex.test(placaCarreta)) {
+        return res.status(400).json({ error: 'Placa da Carreta inválida.' });
+    }
+
+    // Validação do nome do motorista
+    if (nomeMotorista.length > 50) {
+        return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
+    }
+
+    const idUsuario = 55; // Temporariamente considerando o id_usuario como 1
+
+    try {
+        // Conecte-se ao banco de dados e insira a ocorrência
+        const query = promisify(connection.query).bind(connection);
+        const insertQuery = 'INSERT INTO ocorrencia (placa_veiculo, placa_carreta, id_cliente, id_usuario, nome_motorista, descricao, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        await query(insertQuery, [placaVeiculo, placaCarreta, idCliente, idUsuario, nomeMotorista, descricao, status]);
+
+        res.status(200).json({ message: 'Ocorrência cadastrada com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao cadastrar ocorrência:', err);
+        res.status(500).json({ error: 'Erro ao cadastrar ocorrência.' });
+    }
+});
+
 app.get('/search-client', async (req, res) => {
     const { nome, cnpj } = req.query;
 
@@ -192,7 +248,7 @@ app.get('/search-client', async (req, res) => {
             ORDER BY id_cliente DESC
             LIMIT 50
         `;
-        const clients = await query(searchQuery, [`%${nome}%`, `%${cnpj}%`]);
+        const clients = await query(searchQuery, [`${nome}%`, `${cnpj}%`]);
 
         res.json(clients);
     } catch (err) {
@@ -213,7 +269,7 @@ app.get('/search-user', async (req, res) => {
             ORDER BY id_usu DESC
             LIMIT 50
         `;
-        const users = await query(searchQuery, [`%${login}%`, `%${tipo}%`]);
+        const users = await query(searchQuery, [`${login}%`, `${tipo}%`]);
 
         res.json(users);
     } catch (err) {

@@ -4,7 +4,6 @@ const aside = document.querySelector('aside');
 const toggleBtn = document.querySelector('.toggle-btn');
 
 document.querySelectorAll('.submenu').forEach(menu => {
-    console.log("cheguei aqui!!!")
     menu.addEventListener('mouseenter', () => {
         menu.setAttribute('aria-expanded', 'true');
     });
@@ -28,7 +27,7 @@ document.querySelectorAll('.submenu').forEach(menu => {
     aside.hidden = isExpanded;
   });
 
-  searchBox.addEventListener('input', async function () {
+ /* searchBox.addEventListener('input', async function () {
     const inputText = searchBox.value.trim().toLowerCase();
   
     if (inputText === '') {
@@ -51,12 +50,12 @@ document.querySelectorAll('.submenu').forEach(menu => {
         suggestionItem.classList.add('suggestion-item');
         suggestionItem.textContent = `Cliente: ${suggestion.resultado}`;
   
-       /* suggestionItem.addEventListener('click', function () {
+        suggestionItem.addEventListener('click', function () {
           const path = suggestion.tipo === 'usuário'
             ? `/perfil?page=1&id=${suggestion.id}`
             : `/artigo/${suggestion.id}`;
           window.location.href = path; // Caminho relativo a partir da raiz do site
-        });*/
+        });
   
         suggestionItem.addEventListener('mouseenter', function () {
           highlightSuggestion(index);
@@ -87,4 +86,4 @@ document.querySelectorAll('.submenu').forEach(menu => {
         selectedItem.click();
       }
     }
-  });
+  });*/

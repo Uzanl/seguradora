@@ -87,3 +87,7 @@ select {
     cursor: pointer;
     border-radius: 15px;
 }
+
+.toggle-btn{
+    display: none;
+}
