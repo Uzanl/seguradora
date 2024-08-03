@@ -66,14 +66,15 @@ document.getElementById('ocorrencia-form').addEventListener('submit', async (eve
                 placaCarreta,
                 idCliente,
                 nomeMotorista,
-                descricao
+                descricao,
+                status
             })
         });
 
         // Verifica se a resposta foi bem-sucedida
-        if (!response.ok) {
+       /* if (!response.ok) {
             throw new Error('Erro ao enviar os dados.');
-        }
+        }*/
 
         // Trata a resposta do servidor
         const result = await response.json();

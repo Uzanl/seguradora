@@ -189,7 +189,8 @@ app.post('/insert-client', async (req, res) => {
 });
 
 app.post('/insert-ocorrencia', async (req, res) => {
-    console.log("cheguei aqui!!!!")
+    console.log("cheguei aqui!!!!");
+    console.log('Body da requisição:', req.body);
     const { placaVeiculo, placaCarreta, idCliente, nomeMotorista, descricao, status } = req.body;
 
     // Verificação dos campos obrigatórios
@@ -203,38 +204,49 @@ app.post('/insert-ocorrencia', async (req, res) => {
     if (!status) missingFields.push('Status');
 
     if (missingFields.length > 0) {
+        console.log("algum campo vazio")
         const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
         return res.status(400).json({ error: errorMessage });
     }
 
     // Validação das placas (exemplo de regex para placas no formato Mercosul e antigo)
-    const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/; // Adapte conforme necessário
+   /* const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/; // Adapte conforme necessário
     if (!placaRegex.test(placaVeiculo)) {
+        console.log("placa")
         return res.status(400).json({ error: 'Placa do Veículo inválida.' });
     }
     if (!placaRegex.test(placaCarreta)) {
+        console.log("placa")
         return res.status(400).json({ error: 'Placa da Carreta inválida.' });
-    }
+    }*/
 
     // Validação do nome do motorista
     if (nomeMotorista.length > 50) {
+        console.log("motorista")
         return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
     }
 
-    const idUsuario = 55; // Temporariamente considerando o id_usuario como 1
+    const idUsuario = 1; // Temporariamente considerando o id_usuario como 1
 
     try {
         // Conecte-se ao banco de dados e insira a ocorrência
         const query = promisify(connection.query).bind(connection);
-        const insertQuery = 'INSERT INTO ocorrencia (placa_veiculo, placa_carreta, id_cliente, id_usuario, nome_motorista, descricao, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
-        await query(insertQuery, [placaVeiculo, placaCarreta, idCliente, idUsuario, nomeMotorista, descricao, status]);
+        const insertQuery = 'INSERT INTO ocorrencia (id_usuario, id_cliente, status, data, placa_veiculo, placa_carreta, motorista, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+
+        // Obter a data e hora atuais
+        const dataHoraAtual = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+        console.log(dataHoraAtual);
+
+        await query(insertQuery, [idUsuario, idCliente, status, dataHoraAtual, placaVeiculo, placaCarreta, nomeMotorista, descricao]);
 
         res.status(200).json({ message: 'Ocorrência cadastrada com sucesso.' });
     } catch (err) {
         console.error('Erro ao cadastrar ocorrência:', err);
-        res.status(500).json({ error: 'Erro ao cadastrar ocorrência.' });
+        res.status(500).json({ error: `Erro ao cadastrar ocorrência: ${err.code} - ${err.sqlMessage}` });
     }
 });
+
 
 app.get('/search-client', async (req, res) => {
     const { nome, cnpj } = req.query;
