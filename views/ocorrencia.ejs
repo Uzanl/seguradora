@@ -63,10 +63,60 @@
                     <button class="BtnEnviar" type="submit">Enviar</button>
                 </form>
                 <div class="ocorrencia">
-
+                    <% if (ocorrencias.length > 0) { %>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Placa Veículo</th>
+                                    <th>Placa Carreta</th>
+                                    <th>Cliente</th>
+                                    <th>Motorista</th>
+                                    <th>Descrição</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                    <th>Hora</th>
+                                    <th>Usuário</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% ocorrencias.forEach(ocorrencia => { %>
+                                    <tr data-id="<%= ocorrencia.id %>">
+                                        <td><%= ocorrencia.placa_veiculo %></td>
+                                        <td><%= ocorrencia.placa_carreta %></td>
+                                        <td><%= ocorrencia.cliente_nome %></td>
+                                        <td><%= ocorrencia.motorista %></td>
+                                        <td><%= ocorrencia.descricao %></td>
+                                        <td><%= ocorrencia.status %></td>
+                                        <td><%= ocorrencia.data_ocorrencia %></td>
+                                        <td><%= ocorrencia.hora_ocorrencia %></td>
+                                        <td><%= ocorrencia.usuario_login %></td>
+                                        <td class="td-button">
+                                            <button type="button" class="edit-button">
+                                                <img width="30" height="30" src="/images/edit.png" alt="Editar">
+                                            </button>
+                                            <button type="button" class="delete-button" data-id="<%= ocorrencia.id %>">
+                                                <img width="30" height="30" src="/images/delete.png" alt="Excluir">
+                                            </button>
+                                            <div class="edit-section" style="display: none;">
+                                                <label for="edit-motorista-<%= ocorrencia.id %>">Motorista:</label>
+                                                <input type="text" id="edit-motorista-<%= ocorrencia.id %>" name="motoristaedit" placeholder="Digite o nome do motorista" value="<%= ocorrencia.motorista %>" required>
+            
+                                                <label for="edit-descricao-<%= ocorrencia.id %>">Descrição:</label>
+                                                <input type="text" id="edit-descricao-<%= ocorrencia.id %>" name="descricaoedit" placeholder="Digite a descrição" value="<%= ocorrencia.descricao %>" required>
+            
+                                                <button type="button" class="save-button">Salvar</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    <% } else { %>
+                        <p>Nenhuma ocorrência encontrada.</p>
+                    <% } %>
                 </div>
-
-                <form class="form-editor">
+                <form class="form-search">
                     <label for="placa-veiculo-pesquisa">Placa do Veículo:</label>
                     <input type="text" id="placa-veiculo-pesquisa" placeholder="Pesquise com a placa do veículo"
                         name="placa-veiculo-pesquisa">
@@ -95,11 +145,17 @@
                         <option value="nao-resolvido">Não Resolvido</option>
                     </select>
 
-                    <label for="data-de-pesquisa">De:</label>
+                    <label for="data-de-pesquisa">Data de:</label>
                     <input type="date" id="data-de-pesquisa" name="data-de-pesquisa">
 
-                    <label for="data-ate-pesquisa">Até:</label>
+                    <label for="data-ate-pesquisa">Data até:</label>
                     <input type="date" id="data-ate-pesquisa" name="data-ate-pesquisa">
+
+                    <label for="hora-de-pesquisa">Hora de:</label>
+                    <input type="time" id="hora-de-pesquisa" name="hora-de-pesquisa">
+
+                    <label for="hora-ate-pesquisa">Hora até:</label>
+                    <input type="time" id="hora-ate-pesquisa" name="hora-ate-pesquisa">
                 </form>
 
 

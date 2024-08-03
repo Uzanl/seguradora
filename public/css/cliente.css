@@ -63,9 +63,17 @@ main {
     gap: 10px;
 }
 
+.search-form{
+    flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 input,
 textarea,
 select {
+    flex: 1 1;
     padding: 8px;
     border-radius: 15px;
 }

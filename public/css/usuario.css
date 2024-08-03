@@ -60,9 +60,18 @@ main {
 input,
 textarea,
 select {
+    flex: 1 1;
     padding: 8px;
     border-radius: 15px;
 }
+
+.search-form{
+    flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 
 .edit-section{
     flex-direction: column;
@@ -85,7 +94,6 @@ button{
 
 .input-container input {
     width: calc(100% - 20px);
-
 }
 
 /* Remove o ícone de visibilidade de senha padrão */
@@ -93,7 +101,6 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
     display: none;
 }
-
 
 .input-container .toggle-password {
     position: absolute;

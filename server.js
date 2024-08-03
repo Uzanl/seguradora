@@ -63,12 +63,42 @@ app.set('view engine', 'ejs');
 app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
     try {
         const query = promisify(connection.query).bind(connection);
-        const selectQuery = 'SELECT id_cliente, nome FROM cliente';
-        const rows = await query(selectQuery);
 
-        res.render('ocorrencia.ejs', { clients: rows });
+        // Consulta para buscar ocorrências
+        const ocorrenciasQuery = `
+        SELECT 
+          ocorrencia.placa_veiculo,
+          ocorrencia.placa_carreta,
+          cliente.nome AS cliente_nome,
+          ocorrencia.motorista,
+          ocorrencia.descricao,
+          ocorrencia.status,
+          DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+          DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+          usuario.login_usu AS usuario_login
+        FROM 
+          ocorrencia
+        INNER JOIN 
+          usuario ON ocorrencia.id_usuario = usuario.id_usu
+        INNER JOIN 
+          cliente ON ocorrencia.id_cliente = cliente.id_cliente
+        ORDER BY 
+          ocorrencia.data DESC
+        LIMIT 100;
+      `;
+
+        // Consulta para buscar todos os clientes
+        const clientesQuery = 'SELECT id_cliente, nome FROM cliente';
+
+        // Executar as consultas em paralelo
+        const [ocorrencias, clients] = await Promise.all([
+            query(ocorrenciasQuery),
+            query(clientesQuery)
+        ]);
+
+        res.render('ocorrencia.ejs', { ocorrencias, clients });
     } catch (err) {
-        console.error('Erro ao buscar clientes:', err);
+        console.error('Erro ao buscar dados:', err);
         next(err); // Passa o erro para o middleware de tratamento de erros
     }
 }));
@@ -210,15 +240,15 @@ app.post('/insert-ocorrencia', async (req, res) => {
     }
 
     // Validação das placas (exemplo de regex para placas no formato Mercosul e antigo)
-   /* const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/; // Adapte conforme necessário
-    if (!placaRegex.test(placaVeiculo)) {
-        console.log("placa")
-        return res.status(400).json({ error: 'Placa do Veículo inválida.' });
-    }
-    if (!placaRegex.test(placaCarreta)) {
-        console.log("placa")
-        return res.status(400).json({ error: 'Placa da Carreta inválida.' });
-    }*/
+    /* const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/; // Adapte conforme necessário
+     if (!placaRegex.test(placaVeiculo)) {
+         console.log("placa")
+         return res.status(400).json({ error: 'Placa do Veículo inválida.' });
+     }
+     if (!placaRegex.test(placaCarreta)) {
+         console.log("placa")
+         return res.status(400).json({ error: 'Placa da Carreta inválida.' });
+     }*/
 
     // Validação do nome do motorista
     if (nomeMotorista.length > 50) {
@@ -226,7 +256,7 @@ app.post('/insert-ocorrencia', async (req, res) => {
         return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
     }
 
-    const idUsuario = 1; // Temporariamente considerando o id_usuario como 1
+    const idUsuario = 2; // Temporariamente considerando o id_usuario como 1
 
     try {
         // Conecte-se ao banco de dados e insira a ocorrência
@@ -234,9 +264,8 @@ app.post('/insert-ocorrencia', async (req, res) => {
         const insertQuery = 'INSERT INTO ocorrencia (id_usuario, id_cliente, status, data, placa_veiculo, placa_carreta, motorista, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 
         // Obter a data e hora atuais
-        const dataHoraAtual = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-        console.log(dataHoraAtual);
+        //const dataHoraAtual = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const dataHoraAtual = new Date();
 
         await query(insertQuery, [idUsuario, idCliente, status, dataHoraAtual, placaVeiculo, placaCarreta, nomeMotorista, descricao]);
 
@@ -246,7 +275,6 @@ app.post('/insert-ocorrencia', async (req, res) => {
         res.status(500).json({ error: `Erro ao cadastrar ocorrência: ${err.code} - ${err.sqlMessage}` });
     }
 });
-
 
 app.get('/search-client', async (req, res) => {
     const { nome, cnpj } = req.query;

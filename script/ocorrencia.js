@@ -88,5 +88,5 @@ document.getElementById('ocorrencia-form').addEventListener('submit', async (eve
         console.error('Erro:', error);
         alert('Ocorreu um erro ao cadastrar a ocorrência.');
     }
-}); F
+});
 
