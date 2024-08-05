@@ -97,6 +97,16 @@ tr:hover {
     text-align: center;
 }
 
-.edit-button{
+.edit-button {
     margin-bottom: 10px;
+}
+
+button {
+    cursor: pointer;
+}
+
+/* CSS para alterar a largura do span com base na classe */
+.select2-container--default {
+    width: auto !important;
+    /* Ou defina uma largura específica, se necessário */
 }

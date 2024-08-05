@@ -59,33 +59,33 @@ connection.connect((err) => {
 
 app.set('view engine', 'ejs');
 
-
 app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
     try {
         const query = promisify(connection.query).bind(connection);
 
         // Consulta para buscar ocorrências
         const ocorrenciasQuery = `
-        SELECT 
-          ocorrencia.placa_veiculo,
-          ocorrencia.placa_carreta,
-          cliente.nome AS cliente_nome,
-          ocorrencia.motorista,
-          ocorrencia.descricao,
-          ocorrencia.status,
-          DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
-          DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-          usuario.login_usu AS usuario_login
-        FROM 
-          ocorrencia
-        INNER JOIN 
-          usuario ON ocorrencia.id_usuario = usuario.id_usu
-        INNER JOIN 
-          cliente ON ocorrencia.id_cliente = cliente.id_cliente
-        ORDER BY 
-          ocorrencia.data DESC
-        LIMIT 100;
-      `;
+            SELECT
+                ocorrencia.id_ocorrencia, 
+                ocorrencia.placa_veiculo,
+                ocorrencia.placa_carreta,
+                cliente.nome AS cliente_nome,
+                ocorrencia.motorista,
+                ocorrencia.descricao,
+                ocorrencia.status,
+                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                usuario.login_usu AS usuario_login
+            FROM 
+                ocorrencia
+            INNER JOIN 
+                usuario ON ocorrencia.id_usuario = usuario.id_usu
+            INNER JOIN 
+                cliente ON ocorrencia.id_cliente = cliente.id_cliente
+            ORDER BY 
+                ocorrencia.data DESC
+            LIMIT 100;
+        `;
 
         // Consulta para buscar todos os clientes
         const clientesQuery = 'SELECT id_cliente, nome FROM cliente';
@@ -96,9 +96,14 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
             query(clientesQuery)
         ]);
 
-        res.render('ocorrencia.ejs', { ocorrencias, clients });
+        // Verifica se a solicitação é para JSON (feita via fetch)
+        if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
+            res.json({ ocorrencias, clients }); // Retorna os dados como JSON
+        } else {
+            res.render('ocorrencia.ejs', { ocorrencias, clients }); // Renderiza a página com os dados
+        }
     } catch (err) {
-        console.error('Erro ao buscar dados:', err);
+        console.error('Erro ao buscar ocorrências:', err);
         next(err); // Passa o erro para o middleware de tratamento de erros
     }
 }));
@@ -173,6 +178,26 @@ app.delete('/delete-client/:id', async (req, res) => {
     }
 });
 
+app.delete('/delete-ocorrencia/:id', async (req, res) => {
+    const clientId = req.params.id;
+
+    try {
+        // Conectar ao banco de dados e executar a consulta
+        const query = promisify(connection.query).bind(connection);
+        const deleteQuery = 'DELETE FROM ocorrencia WHERE id_ocorrencia = ?';
+        const result = await query(deleteQuery, [clientId]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+        }
+
+        res.status(200).json({ message: 'Ocorrência excluída com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao excluir ocorrência:', err);
+        res.status(500).json({ error: 'Erro ao excluir ocorrência.' });
+    }
+});
+
 app.post('/insert-client', async (req, res) => {
     const { nome, cnpj } = req.body;
 
@@ -219,8 +244,6 @@ app.post('/insert-client', async (req, res) => {
 });
 
 app.post('/insert-ocorrencia', async (req, res) => {
-    console.log("cheguei aqui!!!!");
-    console.log('Body da requisição:', req.body);
     const { placaVeiculo, placaCarreta, idCliente, nomeMotorista, descricao, status } = req.body;
 
     // Verificação dos campos obrigatórios
@@ -239,16 +262,21 @@ app.post('/insert-ocorrencia', async (req, res) => {
         return res.status(400).json({ error: errorMessage });
     }
 
-    // Validação das placas (exemplo de regex para placas no formato Mercosul e antigo)
-    /* const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/; // Adapte conforme necessário
-     if (!placaRegex.test(placaVeiculo)) {
-         console.log("placa")
-         return res.status(400).json({ error: 'Placa do Veículo inválida.' });
-     }
-     if (!placaRegex.test(placaCarreta)) {
-         console.log("placa")
-         return res.status(400).json({ error: 'Placa da Carreta inválida.' });
-     }*/
+    // Validação das placas (exatamente 7 caracteres, apenas letras e números)
+    console.log(placaVeiculo);
+    const placaRegex = /^[A-Za-z0-9]{7}$/;
+
+    // Validação da Placa do Veículo
+    if (!placaRegex.test(placaVeiculo)) {
+        console.log("placaVeiculo");
+        return res.status(400).json({ error: 'Placa do Veículo inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
+    }
+
+    // Validação da Placa da Carreta
+    if (!placaRegex.test(placaCarreta)) {
+        console.log("placaCarreta");
+        return res.status(400).json({ error: 'Placa da Carreta inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
+    }
 
     // Validação do nome do motorista
     if (nomeMotorista.length > 50) {
@@ -256,24 +284,30 @@ app.post('/insert-ocorrencia', async (req, res) => {
         return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
     }
 
-    const idUsuario = 2; // Temporariamente considerando o id_usuario como 1
+    const idUsuario = 3; // Temporariamente considerando o id_usuario como 1
 
     try {
         // Conecte-se ao banco de dados e insira a ocorrência
         const query = promisify(connection.query).bind(connection);
         const insertQuery = 'INSERT INTO ocorrencia (id_usuario, id_cliente, status, data, placa_veiculo, placa_carreta, motorista, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 
-        // Obter a data e hora atuais
-        //const dataHoraAtual = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        // Obter a data e hora atuais no horário de Brasília
         const dataHoraAtual = new Date();
+        const offset = -3 * 60; // Horário de Brasília (GMT-3)
+        const localDate = new Date(dataHoraAtual.getTime() + (offset * 60000));
 
-        await query(insertQuery, [idUsuario, idCliente, status, dataHoraAtual, placaVeiculo, placaCarreta, nomeMotorista, descricao]);
+        // Formatar a data e hora para YYYY-MM-DD HH:MM
+        const formattedDataHora = localDate.toISOString().slice(0, 16).replace('T', ' ');
+
+        await query(insertQuery, [idUsuario, idCliente, status, formattedDataHora, placaVeiculo, placaCarreta, nomeMotorista, descricao]);
 
         res.status(200).json({ message: 'Ocorrência cadastrada com sucesso.' });
     } catch (err) {
         console.error('Erro ao cadastrar ocorrência:', err);
         res.status(500).json({ error: `Erro ao cadastrar ocorrência: ${err.code} - ${err.sqlMessage}` });
     }
+
+
 });
 
 app.get('/search-client', async (req, res) => {
@@ -315,6 +349,93 @@ app.get('/search-user', async (req, res) => {
     } catch (err) {
         console.error('Erro ao buscar usuários:', err);
         res.status(500).json({ error: 'Erro ao buscar usuários.' });
+    }
+});
+
+app.get('/search-ocorrencia', async (req, res) => {
+    const {
+        'placa-veiculo-pesquisa': placaVeiculo,
+        'placa-carreta-pesquisa': placaCarreta,
+        'nome-cliente-pesquisa': nomeCliente,
+        'nome-motorista-pesquisa': nomeMotorista,
+        'descricao-pesquisa': descricao,
+        'status-pesquisa': status,
+        'data-de-pesquisa': dataDe,
+        'data-ate-pesquisa': dataAte,
+        'hora-de-pesquisa': horaDe,
+        'hora-ate-pesquisa': horaAte
+    } = req.query;
+
+    try {
+        const query = promisify(connection.query).bind(connection);
+
+        let searchQuery = `
+            SELECT
+                ocorrencia.id_ocorrencia,
+                ocorrencia.placa_veiculo,
+                ocorrencia.placa_carreta,
+                cliente.nome AS cliente_nome,
+                ocorrencia.motorista,
+                ocorrencia.descricao,
+                ocorrencia.status,
+                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                usuario.login_usu AS usuario_login
+            FROM 
+                ocorrencia
+            INNER JOIN 
+                usuario ON ocorrencia.id_usuario = usuario.id_usu
+            INNER JOIN 
+                cliente ON ocorrencia.id_cliente = cliente.id_cliente
+            WHERE 
+                ocorrencia.placa_veiculo LIKE ? AND
+                ocorrencia.placa_carreta LIKE ? AND
+                cliente.nome LIKE ? AND
+                ocorrencia.motorista LIKE ? AND
+                ocorrencia.descricao LIKE ? AND
+                ocorrencia.status LIKE ?
+        `;
+
+        const queryParams = [
+            `${placaVeiculo || ''}%`,
+            `${placaCarreta || ''}%`,
+            `${nomeCliente || ''}%`,
+            `${nomeMotorista || ''}%`,
+            `${descricao || ''}%`,
+            `${status || ''}%`
+        ];
+
+        // Adiciona os filtros para intervalo de data
+        if (dataDe && dataAte) {
+            searchQuery += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
+            queryParams.push(dataDe, dataAte);
+        } else if (dataDe) {
+            searchQuery += ' AND DATE(ocorrencia.data) = DATE(?)';
+            queryParams.push(dataDe);
+        } else if (dataAte) {
+            searchQuery += ' AND DATE(ocorrencia.data) <= DATE(?)';
+            queryParams.push(dataAte);
+        }
+
+        // Adiciona os filtros para intervalo de hora
+        if (horaDe && horaAte) {
+            searchQuery += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
+            queryParams.push(horaDe, horaAte);
+        } else if (horaDe) {
+            console.log("cheguei no horade")
+            console.log(horaDe)
+            searchQuery += ' AND TIME(ocorrencia.data) = TIME(?)';
+            queryParams.push(horaDe);
+        } else if (horaAte) {
+            searchQuery += ' AND TIME(ocorrencia.data) <= TIME(?)';
+            queryParams.push(horaAte);
+        }
+
+        const rows = await query(searchQuery, queryParams);
+        res.json(rows);
+    } catch (err) {
+        console.error('Erro ao buscar ocorrências:', err);
+        res.status(500).json({ error: 'Erro ao buscar ocorrências.' });
     }
 });
 
@@ -435,7 +556,6 @@ app.post('/insert-user', async (req, res) => {
         res.status(200).json({ message: 'Usuário cadastrado com sucesso.' });
     } catch (err) {
         if (err.code === 'ER_DUP_ENTRY') {
-            console.log("Cheguei aqui!!!")
             // Trata o erro de entrada duplicada
             return res.status(400).json({ error: 'Login já cadastrado no sistema.' });
         } else {
