@@ -75,7 +75,9 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 ocorrencia.status,
                 DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
                 DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-                usuario.login_usu AS usuario_login
+                usuario.login_usu AS usuario_login,
+                ocorrencia.id_usuario,
+                ocorrencia.id_cliente
             FROM 
                 ocorrencia
             INNER JOIN 
@@ -90,17 +92,21 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
         // Consulta para buscar todos os clientes
         const clientesQuery = 'SELECT id_cliente, nome FROM cliente';
 
+        // Consulta para buscar todos os usuários
+        const usuariosQuery = 'SELECT id_usu, login_usu FROM usuario';
+
         // Executar as consultas em paralelo
-        const [ocorrencias, clients] = await Promise.all([
+        const [ocorrencias, clients, usuarios] = await Promise.all([
             query(ocorrenciasQuery),
-            query(clientesQuery)
+            query(clientesQuery),
+            query(usuariosQuery)
         ]);
 
         // Verifica se a solicitação é para JSON (feita via fetch)
         if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
-            res.json({ ocorrencias, clients }); // Retorna os dados como JSON
+            res.json({ ocorrencias, clients, usuarios }); // Retorna os dados como JSON
         } else {
-            res.render('ocorrencia.ejs', { ocorrencias, clients }); // Renderiza a página com os dados
+            res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios }); // Renderiza a página com os dados
         }
     } catch (err) {
         console.error('Erro ao buscar ocorrências:', err);
@@ -197,6 +203,74 @@ app.delete('/delete-ocorrencia/:id', async (req, res) => {
         res.status(500).json({ error: 'Erro ao excluir ocorrência.' });
     }
 });
+
+app.put('/update-ocorrencia/:id', asyncHandler(async (req, res) => {
+    const ocorrenciaId = req.params.id;
+    const {
+        'placa-veiculo-edit': placaVeiculo,
+        'placa-carreta-edit': placaCarreta,
+        'id-cliente-edit': idCliente,
+        'motorista-edit': motorista,
+        'descricao-edit': descricao,
+        'status-edit': status,
+        'data-edit': data, // Data e Hora combinados
+        'hora-edit': hora, // Hora separada
+        'id-usuario-edit': idUsuario
+    } = req.body;
+
+    // Verificação dos campos obrigatórios
+    const missingFields = [];
+
+    if (!placaVeiculo) missingFields.push('Placa do Veículo');
+    if (!placaCarreta) missingFields.push('Placa da Carreta');
+    if (!idCliente) missingFields.push('ID do Cliente');
+    if (!motorista) missingFields.push('Motorista');
+    if (!descricao) missingFields.push('Descrição');
+    if (!status) missingFields.push('Status');
+    if (!data) missingFields.push('Data'); // Data e Hora combinados
+    if (!hora) missingFields.push('Hora'); // Hora separada
+    if (!idUsuario) missingFields.push('ID do Usuário');
+
+    if (missingFields.length > 0) {
+        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+        return res.status(400).json({ error: errorMessage });
+    }
+
+    try {
+        const query = promisify(connection.query).bind(connection);
+
+        // Combina a data e a hora no campo data
+        const dataHora = `${data} ${hora}`;
+
+        // Atualize a consulta SQL
+        const updateQuery = `
+            UPDATE ocorrencia
+            SET placa_veiculo = ?, placa_carreta = ?, id_cliente = ?, motorista = ?, descricao = ?, status = ?, data = ?, id_usuario = ?
+            WHERE id_ocorrencia = ?
+        `;
+        const result = await query(updateQuery, [
+            placaVeiculo,
+            placaCarreta,
+            idCliente,
+            motorista,
+            descricao,
+            status,
+            dataHora, // Data e Hora combinados
+            idUsuario,
+            ocorrenciaId
+        ]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+        }
+
+        res.status(200).json({ message: 'Ocorrência atualizada com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao atualizar ocorrência:', err);
+        res.status(500).json({ error: 'Erro ao atualizar ocorrência.' });
+    }
+}));
+
 
 app.post('/insert-client', async (req, res) => {
     const { nome, cnpj } = req.body;
@@ -380,7 +454,9 @@ app.get('/search-ocorrencia', async (req, res) => {
                 ocorrencia.status,
                 DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
                 DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-                usuario.login_usu AS usuario_login
+                usuario.login_usu AS usuario_login,
+                ocorrencia.id_usuario,
+                ocorrencia.id_cliente
             FROM 
                 ocorrencia
             INNER JOIN 

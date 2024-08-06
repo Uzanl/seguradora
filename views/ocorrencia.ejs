@@ -32,12 +32,12 @@
 
                 <form class="form-editor" id="ocorrencia-form">
                     <label for="placa-veiculo">Placa do Veículo:</label>
-                    <input type="text" id="placa-veiculo" name="placaVeiculo" placeholder="Digite a placa do veículo"
-                        required>
+                    <input type="text" id="placa-veiculo" class="placa" name="placaVeiculo"
+                        placeholder="Digite a placa do veículo" required>
 
                     <label for="placa-carreta">Placa da Carreta:</label>
-                    <input type="text" id="placa-carreta" name="placaCarreta" placeholder="Digite a placa da carreta"
-                        required>
+                    <input type="text" id="placa-carreta" class="placa" name="placaCarreta"
+                        placeholder="Digite a placa da carreta" required>
 
                     <label for="id-cliente">Nome do Cliente:</label>
                     <select id="id-cliente" class="select-client" name="idCliente" required>
@@ -67,93 +67,144 @@
                     <button class="BtnEnviar" type="submit">Enviar</button>
                 </form>
                 <div class="ocorrencia">
-                    <% if (ocorrencias.length> 0) { %>
-                        <table id="ocorrencias-table">
-                            <thead>
-                                <tr>
-                                    <th>Placa Veículo</th>
-                                    <th>Placa Carreta</th>
-                                    <th>Cliente</th>
-                                    <th>Motorista</th>
-                                    <th>Descrição</th>
-                                    <th>Status</th>
-                                    <th>Data</th>
-                                    <th>Hora</th>
-                                    <th>Usuário</th>
-                                    <th>Ações</th>
+
+                    <table id="ocorrencias-table">
+                        <thead>
+                            <tr>
+                                <th>Placa Veículo</th>
+                                <th>Placa Carreta</th>
+                                <th>Cliente</th>
+                                <th>Motorista</th>
+                                <th>Descrição</th>
+                                <th>Status</th>
+                                <th>Data</th>
+                                <th>Hora</th>
+                                <th>Usuário</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ocorrencias-table-body">
+                            <% ocorrencias.forEach(ocorrencia=> { %>
+                                <tr data-id="<%= ocorrencia.id_ocorrencia %>">
+                                    <td class="placa-veiculo">
+                                        <%= ocorrencia.placa_veiculo %>
+                                    </td>
+                                    <td class="placa-carreta">
+                                        <%= ocorrencia.placa_carreta %>
+                                    </td>
+                                    <td class="cliente-nome" data-id="<%= ocorrencia.id_cliente %>">
+                                        <%= ocorrencia.cliente_nome %>
+                                    </td>
+                                    <td class="motorista">
+                                        <%= ocorrencia.motorista %>
+                                    </td>
+                                    <td class="descricao">
+                                        <%= ocorrencia.descricao %>
+                                    </td>
+                                    <td class="status">
+                                        <%= ocorrencia.status %>
+                                    </td>
+                                    <td class="data-ocorrencia">
+                                        <%= ocorrencia.data_ocorrencia %>
+                                    </td>
+                                    <td class="hora-ocorrencia">
+                                        <%= ocorrencia.hora_ocorrencia %>
+                                    </td>
+                                    <td class="usuario-login" data-id="<%= ocorrencia.id_usuario %>">
+                                        <%= ocorrencia.usuario_login %>
+                                    </td>
+
+                                    <td class="td-button">
+                                        <button type="button" class="edit-button"
+                                            data-id="<%= ocorrencia.id_ocorrencia %>">
+                                            <img width="30" height="30" src="/images/edit.png" alt="Editar">
+                                        </button>
+                                        <button type="button" class="delete-button"
+                                            data-id="<%= ocorrencia.id_ocorrencia %>">
+                                            <img width="30" height="30" src="/images/delete.png" alt="Excluir">
+                                        </button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody id="ocorrencias-table-body">
-                                <% ocorrencias.forEach(ocorrencia=> { %>
-                                    <tr data-id="<%= ocorrencia.id_ocorrencia %>">
-                                        <td>
-                                            <%= ocorrencia.placa_veiculo %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.placa_carreta %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.cliente_nome %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.motorista %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.descricao %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.status %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.data_ocorrencia %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.hora_ocorrencia %>
-                                        </td>
-                                        <td>
-                                            <%= ocorrencia.usuario_login %>
-                                        </td>
-                                        <td class="td-button">
-                                            <button type="button" class="edit-button">
-                                                <img width="30" height="30" src="/images/edit.png" alt="Editar">
-                                            </button>
-                                            <button type="button" class="delete-button">
-                                                <img width="30" height="30" src="/images/delete.png" alt="Excluir">
-                                            </button>
-                                            <div class="edit-section" style="display: none;">
-                                                <label for="edit-motorista-<%= ocorrencia.id %>">Motorista:</label>
-                                                <input type="text" id="edit-motorista-<%= ocorrencia.id %>"
-                                                    name="motoristaedit" placeholder="Digite o nome do motorista"
-                                                    value="<%= ocorrencia.motorista %>" required>
+                                <% }); %>
+                        </tbody>
 
-                                                <label for="edit-descricao-<%= ocorrencia.id %>">Descrição:</label>
-                                                <input type="text" id="edit-descricao-<%= ocorrencia.id %>"
-                                                    name="descricaoedit" placeholder="Digite a descrição"
-                                                    value="<%= ocorrencia.descricao %>" required>
+                    </table>
 
-                                                <button type="button" class="save-button">Salvar</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <% }); %>
-                            </tbody>
-                        </table>
-                        <% } else { %>
-                            <p>Nenhuma ocorrência encontrada.</p>
-                            <% } %>
+
+                    <!-- Div de Edição (fora da tabela) -->
+                    <div class="edit-section" style="display: none;">
+                        <label for="edit-placa-veiculo">Placa do Veículo:</label>
+                        <input type="text" id="edit-placa-veiculo" class="placa" name="placa-veiculo-edit"
+                            placeholder="Digite a placa do veículo" required>
+
+                        <label for="edit-placa-carreta">Placa da Carreta:</label>
+                        <input type="text" class="placa" id="edit-placa-carreta" name="placa-carreta-edit"
+                            placeholder="Digite a placa da carreta" required>
+
+                        <label for="edit-cliente-nome">Nome do Cliente:</label>
+                        <select id="edit-cliente-nome" class="select-client" name="cliente-nome-edit" required>
+
+                            <% clients.forEach(function(client) { %>
+                                <option value="<%= client.id_cliente %>">
+                                    <%= client.nome %>
+                                </option>
+                                <% }); %>
+                        </select>
+
+                        <label for="edit-motorista">Motorista:</label>
+                        <input type="text" id="edit-motorista" name="motorista-edit"
+                            placeholder="Digite o nome do motorista" required>
+
+                        <label for="edit-descricao">Descrição:</label>
+                        <textarea type="text" id="edit-descricao" name="descricao-edit" placeholder="Digite a descrição"
+                            rows="4" required></textarea>
+
+                        <label for="edit-status">Status:</label>
+                        <select id="edit-status" name="status-edit" required>
+                            <option value="Resolvido">Resolvido</option>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Não Resolvido">Não Resolvido</option>
+                        </select>
+
+                        <label for="edit-data-ocorrencia">Data da Ocorrência:</label>
+                        <input type="date" id="edit-data-ocorrencia" name="data-ocorrencia-edit"
+                            placeholder="Digite a data da ocorrência" required>
+
+                        <label for="edit-hora-ocorrencia">Hora da Ocorrência:</label>
+                        <input type="time" id="edit-hora-ocorrencia" name="hora-ocorrencia-edit"
+                            placeholder="Digite a hora da ocorrência" required>
+
+                        <label for="edit-usuario-login">Login do Usuário:</label>
+                        <select id="edit-usuario-login" name="usuario-login-edit" required>
+                            <% usuarios.forEach(usuario=> { %>
+                                <option value="<%= usuario.id_usu %>">
+                                    <%= usuario.login_usu %>
+                                </option>
+                                <% }) %>
+                        </select>
+
+
+                        <button type="button" class="save-button">Salvar</button>
+                        <button type="button" class="cancel-button">Cancelar</button>
+                    </div>
+
+
                 </div>
                 <form class="form-search">
                     <label for="placa-veiculo-pesquisa">Placa do Veículo:</label>
-                    <input type="text" id="placa-veiculo-pesquisa" placeholder="Pesquise com a placa do veículo"
-                        name="placa-veiculo-pesquisa">
+                    <input type="text" id="placa-veiculo-pesquisa" class="placa"
+                        placeholder="Pesquise com a placa do veículo" name="placa-veiculo-pesquisa">
 
                     <label for="placa-carreta-pesquisa">Placa da Carreta:</label>
-                    <input type="text" id="placa-carreta-pesquisa" placeholder="Pesquise com a placa da carreta"
-                        name="placa-carreta-pesquisa">
+                    <input type="text" id="placa-carreta-pesquisa" class="placa"
+                        placeholder="Pesquise com a placa da carreta" name="placa-carreta-pesquisa">
 
                     <label for="nome-cliente-pesquisa">Nome do Cliente:</label>
                     <input type="text" id="nome-cliente-pesquisa" placeholder="Pesquise com o nome do cliente"
                         name="nome-cliente-pesquisa">
+
+
+
 
                     <label for="nome-motorista-pesquisa">Nome do Motorista:</label>
                     <input type="text" id="nome-motorista-pesquisa" placeholder="Pesquise com o nome do motorista"
@@ -182,6 +233,8 @@
 
                     <label for="hora-ate-pesquisa">Hora até:</label>
                     <input type="time" id="hora-ate-pesquisa" name="hora-ate-pesquisa">
+
+
 
                     <button type="button" id="export-pdf-button">
                         <img width="30" height="30" src="/images/pdf.webp" alt="Exportar para PDF">
