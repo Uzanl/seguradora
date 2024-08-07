@@ -37,39 +37,20 @@ $(document).ready(function () {
 
 document.getElementById('ocorrencia-form').addEventListener('submit', async (event) => {
     event.preventDefault(); // Previne o envio padrão do formulário
-
-    const placaVeiculo = document.getElementById("placa-veiculo").value;
-    const placaCarreta = document.getElementById("placa-carreta").value;
-    const idCliente = document.getElementById("id-cliente").value;
-    const nomeMotorista = document.getElementById("nome-motorista").value;
-    const descricao = document.getElementById("descricao").value;
-    const status = document.getElementById("status").value;
-
+    const form = event.target;
+    const formData = new FormData(form);
 
     try {
         // Envia os dados para o servidor
         const response = await fetch('/insert-ocorrencia', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                placaVeiculo,
-                placaCarreta,
-                idCliente,
-                nomeMotorista,
-                descricao,
-                status
-            })
+            body: formData
         });
 
         // Verifica se a resposta foi bem-sucedida
-        /* if (!response.ok) {
-             throw new Error('Erro ao enviar os dados.');
-         }*/
-
-
-        //os dados estão sendo tratados de forma errada aqui!!!
+        if (!response.ok) {
+            throw new Error('Erro ao enviar os dados.');
+        }
 
         // Trata a resposta do servidor
         const result = await response.json();
@@ -78,7 +59,7 @@ document.getElementById('ocorrencia-form').addEventListener('submit', async (eve
         // Exibe uma mensagem de sucesso ou redireciona o usuário, conforme necessário
         alert('Ocorrência cadastrada com sucesso!');
         updateOcorrenciaList();
-        event.target.reset(); // Limpa o formulário
+        form.reset(); // Limpa o formulário
 
     } catch (error) {
         console.error('Erro:', error);
@@ -121,6 +102,7 @@ async function searchOcorrencias() {
         });
 
         const response = await fetch(`/search-ocorrencia?${query.toString()}`);
+
         if (!response.ok) throw new Error('Erro ao buscar ocorrências');
         const ocorrencias = await response.json();
         renderOcorrencias(ocorrencias);
@@ -130,9 +112,9 @@ async function searchOcorrencias() {
 }
 
 function renderOcorrencias(ocorrencias) {
+    console.time("teste");
     const tableBody = document.getElementById('ocorrencias-table-body');
     tableBody.innerHTML = '';
-
     ocorrencias.forEach(ocorrencia => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', ocorrencia.id_ocorrencia);
@@ -145,7 +127,7 @@ function renderOcorrencias(ocorrencias) {
             <td class="status">${ocorrencia.status}</td>
             <td class="data-ocorrencia">${ocorrencia.data_ocorrencia}</td>
             <td class="hora-ocorrencia">${ocorrencia.hora_ocorrencia}</td>
-             <td class="usuario-login" data-id="${ocorrencia.id_usuario}">${ocorrencia.usuario_login}</td>
+            <td class="usuario-login" data-id="${ocorrencia.id_usuario}">${ocorrencia.usuario_login}</td>
             <td class="td-button">
                 <button type="button" class="edit-button" data-id="${ocorrencia.id_ocorrencia}">
                     <img width="30" height="30" src="/images/edit.png" alt="Editar">
@@ -156,9 +138,9 @@ function renderOcorrencias(ocorrencias) {
             </td>
         `;
         tableBody.appendChild(row);
-
     });
 
+    console.timeEnd("teste");
 }
 
 async function updateOcorrenciaList() {
@@ -227,42 +209,11 @@ function addEventListenerToSaveButton() {
         if (!target) return; // Ignorar se o alvo não for um botão de salvar
 
         const ocorrenciaId = target.getAttribute('data-id');
-        saveOcorrencia(ocorrenciaId);
+        updateOcorrencia(ocorrenciaId);
     });
 }
 
 addEventListenerToSaveButton();
-document.getElementById('export-pdf-button').addEventListener('click', function () {
-    console.time("uzx");
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    const table = document.getElementById('ocorrencias-table');
-
-    // Prepare the header
-    const headers = Array.from(table.querySelectorAll('thead th'))
-        .map(th => th.innerText)
-        .slice(0, -1); // Remove the last header
-
-    // Prepare the data
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    const data = rows.map(tr =>
-        Array.from(tr.querySelectorAll('td'))
-            .map(td => td.innerText)
-            .slice(0, -1) // Remove the last column
-    );
-
-    // Generate the PDF using autoTable
-    doc.autoTable({
-        head: [headers],
-        body: data
-    });
-
-    doc.save('ocorrencias.pdf');
-
-    console.timeEnd("uzx");
-});
 
 function editOcorrencia(ocorrenciaId) {
     const listItem = document.querySelector(`tr[data-id="${ocorrenciaId}"]`);
@@ -316,7 +267,7 @@ function formatDateForInput(dateString) {
     return `${year}-${month}-${day}`;
 }
 
-async function saveOcorrencia(ocorrenciaId) {
+async function updateOcorrencia(ocorrenciaId) {
 
     const placaVeiculo = document.getElementById('edit-placa-veiculo').value;
     const placaCarreta = document.getElementById('edit-placa-carreta').value;
@@ -366,3 +317,10 @@ async function saveOcorrencia(ocorrenciaId) {
 }
 
 addEventListenersToOcorrenciaButtons();
+
+document.getElementById('export-pdf-button').addEventListener('click', () => {
+    console.time("teste")
+    // Abre a rota que gera o PDF e força o download do arquivo
+    window.location.href = '/download-pdf';
+    console.timeEnd("teste")
+});

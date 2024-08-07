@@ -11,6 +11,13 @@ const dbConfig = require('./config/db');
 const cors = require('cors');
 const zlib = require('zlib');
 const { promisify } = require('util');
+const { jsPDF } = require('jspdf');
+const bodyParser = require('body-parser');
+require('jspdf-autotable');
+const generatePdf = require('./generatePdf');
+const multer = require('multer');
+const upload = multer();
+
 
 app.use(
     session({
@@ -37,6 +44,10 @@ app.use(compression({
 const asyncHandler = fn => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+// Aumentar o limite de tamanho para 200mb, por exemplo
+app.use(bodyParser.json({ limit: '200mb' }));
+app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -271,7 +282,6 @@ app.put('/update-ocorrencia/:id', asyncHandler(async (req, res) => {
     }
 }));
 
-
 app.post('/insert-client', async (req, res) => {
     const { nome, cnpj } = req.body;
 
@@ -317,43 +327,42 @@ app.post('/insert-client', async (req, res) => {
     }
 });
 
-app.post('/insert-ocorrencia', async (req, res) => {
-    const { placaVeiculo, placaCarreta, idCliente, nomeMotorista, descricao, status } = req.body;
+app.post('/insert-ocorrencia',  upload.none(), async (req, res) => {
+    const { placaveiculo, placacarreta, idcliente, nomemotorista, descricao, status } = req.body;
 
     // Verificação dos campos obrigatórios
     const missingFields = [];
 
-    if (!placaVeiculo) missingFields.push('Placa do Veículo');
-    if (!placaCarreta) missingFields.push('Placa da Carreta');
-    if (!idCliente) missingFields.push('ID do Cliente');
-    if (!nomeMotorista) missingFields.push('Nome do Motorista');
+    if (!placaveiculo) missingFields.push('Placa do Veículo');
+    if (!placacarreta) missingFields.push('Placa da Carreta');
+    if (!idcliente) missingFields.push('ID do Cliente');
+    if (!nomemotorista) missingFields.push('Nome do Motorista');
     if (!descricao) missingFields.push('Descrição');
     if (!status) missingFields.push('Status');
 
     if (missingFields.length > 0) {
-        console.log("algum campo vazio")
         const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+        console.log(errorMessage);
         return res.status(400).json({ error: errorMessage });
     }
 
     // Validação das placas (exatamente 7 caracteres, apenas letras e números)
-    console.log(placaVeiculo);
     const placaRegex = /^[A-Za-z0-9]{7}$/;
 
     // Validação da Placa do Veículo
-    if (!placaRegex.test(placaVeiculo)) {
+    if (!placaRegex.test(placaveiculo)) {
         console.log("placaVeiculo");
         return res.status(400).json({ error: 'Placa do Veículo inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
     }
 
     // Validação da Placa da Carreta
-    if (!placaRegex.test(placaCarreta)) {
+    if (!placaRegex.test(placacarreta)) {
         console.log("placaCarreta");
         return res.status(400).json({ error: 'Placa da Carreta inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
     }
 
     // Validação do nome do motorista
-    if (nomeMotorista.length > 50) {
+    if (nomemotorista.length > 50) {
         console.log("motorista")
         return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
     }
@@ -373,7 +382,7 @@ app.post('/insert-ocorrencia', async (req, res) => {
         // Formatar a data e hora para YYYY-MM-DD HH:MM
         const formattedDataHora = localDate.toISOString().slice(0, 16).replace('T', ' ');
 
-        await query(insertQuery, [idUsuario, idCliente, status, formattedDataHora, placaVeiculo, placaCarreta, nomeMotorista, descricao]);
+        await query(insertQuery, [idUsuario, idcliente, status, formattedDataHora, placaveiculo, placacarreta, nomemotorista, descricao]);
 
         res.status(200).json({ message: 'Ocorrência cadastrada com sucesso.' });
     } catch (err) {
@@ -427,6 +436,7 @@ app.get('/search-user', async (req, res) => {
 });
 
 app.get('/search-ocorrencia', async (req, res) => {
+    
     const {
         'placa-veiculo-pesquisa': placaVeiculo,
         'placa-carreta-pesquisa': placaCarreta,
@@ -481,7 +491,6 @@ app.get('/search-ocorrencia', async (req, res) => {
             `${status || ''}%`
         ];
 
-        // Adiciona os filtros para intervalo de data
         if (dataDe && dataAte) {
             searchQuery += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
             queryParams.push(dataDe, dataAte);
@@ -493,13 +502,10 @@ app.get('/search-ocorrencia', async (req, res) => {
             queryParams.push(dataAte);
         }
 
-        // Adiciona os filtros para intervalo de hora
         if (horaDe && horaAte) {
             searchQuery += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
             queryParams.push(horaDe, horaAte);
         } else if (horaDe) {
-            console.log("cheguei no horade")
-            console.log(horaDe)
             searchQuery += ' AND TIME(ocorrencia.data) = TIME(?)';
             queryParams.push(horaDe);
         } else if (horaAte) {
@@ -508,10 +514,34 @@ app.get('/search-ocorrencia', async (req, res) => {
         }
 
         const rows = await query(searchQuery, queryParams);
+
+        // Envie a resposta JSON com os dados ao cliente
         res.json(rows);
+
+        // Gere o PDF em segundo plano
+        const pdfData = {
+            headers: ['Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
+            rows: rows.map(row => [
+                row.placa_veiculo,
+                row.placa_carreta,
+                row.cliente_nome,
+                row.motorista,
+                row.descricao,
+                row.status,
+                row.data_ocorrencia,
+                row.hora_ocorrencia,
+                row.usuario_login
+            ])
+        };
+
+        generatePdf(pdfData)
+            .then(message => console.log(message))
+            .catch(err => console.error(err));
+
     } catch (err) {
+        console.log("caí aqui!!!")
         console.error('Erro ao buscar ocorrências:', err);
-        res.status(500).json({ error: 'Erro ao buscar ocorrências.' });
+        res.status(500).json({ error: 'Erro ao buscar ocorrências' });
     }
 });
 
@@ -660,6 +690,36 @@ app.delete('/delete-user/:id', async (req, res) => {
         res.status(500).json({ error: 'Erro ao excluir usuário.' });
     }
 });
+
+app.get('/download-pdf', (req, res) => {
+    const pdfPath = path.join(__dirname, 'pdfs', 'ocorrencias.pdf');
+
+    // Verifique se o arquivo existe e se está pronto
+    fs.access(pdfPath, fs.constants.F_OK, (err) => {
+        if (err) {
+            console.error('Arquivo não encontrado:', err);
+            return res.status(404).json({ error: 'Arquivo não encontrado' });
+        }
+
+        // Faça o download do arquivo
+        res.download(pdfPath, 'ocorrencias.pdf', (err) => {
+            if (err) {
+                console.error('Erro ao fazer download do arquivo:', err);
+                return res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
+            }
+
+            // Após o download, exclua o arquivo
+            fs.unlink(pdfPath, (err) => {
+                if (err) {
+                    console.error('Erro ao excluir o arquivo:', err);
+                } else {
+                    console.log('Arquivo excluído com sucesso');
+                }
+            });
+        });
+    });
+});
+
 
 // Middleware de Tratamento de Erros Global
 app.use((err, req, res, next) => {

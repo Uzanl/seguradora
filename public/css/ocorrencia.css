@@ -129,3 +129,23 @@ button {
     gap: 10px;
     width: 300px; /* Ajuste conforme necessário */
 }
+
+#ocorrencias-table-container {
+    height: 400px; /* Ajuste conforme necessário */
+    overflow-y: auto;
+    border: 1px solid #ddd;
+}
+#ocorrencias-table-body {
+    /* Adicione estilos se necessário */
+}
+.loading {
+    text-align: center;
+    padding: 10px;
+    color: #777;
+}
+
+.loading-indicator {
+    display: none; /* Oculto por padrão */
+    text-align: center;
+    padding: 10px;
+}

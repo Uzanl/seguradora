@@ -30,17 +30,17 @@
         <%- include('partials/sidebar') %>
             <main>
 
-                <form class="form-editor" id="ocorrencia-form">
+                <form class="form-editor" id="ocorrencia-form" enctype="multipart/form-data" aria-label="Formulário de inserção de ocorrências">
                     <label for="placa-veiculo">Placa do Veículo:</label>
-                    <input type="text" id="placa-veiculo" class="placa" name="placaVeiculo"
+                    <input type="text" id="placa-veiculo" class="placa" name="placaveiculo"
                         placeholder="Digite a placa do veículo" required>
 
                     <label for="placa-carreta">Placa da Carreta:</label>
-                    <input type="text" id="placa-carreta" class="placa" name="placaCarreta"
+                    <input type="text" id="placa-carreta" class="placa" name="placacarreta"
                         placeholder="Digite a placa da carreta" required>
 
                     <label for="id-cliente">Nome do Cliente:</label>
-                    <select id="id-cliente" class="select-client" name="idCliente" required>
+                    <select id="id-cliente" class="select-client" name="idcliente" required>
                         <option value="" disabled selected>Selecione um cliente</option>
                         <% clients.forEach(function(client) { %>
                             <option value="<%= client.id_cliente %>">
@@ -50,7 +50,7 @@
                     </select>
 
                     <label for="nome-motorista">Nome do Motorista:</label>
-                    <input type="text" id="nome-motorista" name="nomeMotorista" placeholder="Digite o nome do motorista"
+                    <input type="text" id="nome-motorista" name="nomemotorista" placeholder="Digite o nome do motorista"
                         required>
 
                     <label for="descricao">Descrição:</label>
@@ -129,8 +129,6 @@
                         </tbody>
 
                     </table>
-
-
                     <!-- Div de Edição (fora da tabela) -->
                     <div class="edit-section" style="display: none;">
                         <label for="edit-placa-veiculo">Placa do Veículo:</label>
@@ -203,9 +201,6 @@
                     <input type="text" id="nome-cliente-pesquisa" placeholder="Pesquise com o nome do cliente"
                         name="nome-cliente-pesquisa">
 
-
-
-
                     <label for="nome-motorista-pesquisa">Nome do Motorista:</label>
                     <input type="text" id="nome-motorista-pesquisa" placeholder="Pesquise com o nome do motorista"
                         name="nome-motorista-pesquisa">
@@ -244,6 +239,7 @@
 
 
             </main>
+
 </body>
 
 </html>
