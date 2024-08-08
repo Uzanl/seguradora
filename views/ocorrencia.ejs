@@ -22,6 +22,9 @@
         defer></script>
     <script src="/script/utils.js" defer></script>
     <script src="/script/ocorrencia.js" defer></script>
+  <!-- <script src="/script/infinite-scroll.js" defer></script> -->
+
+
     <title>Formulário de Ocorrências</title>
 </head>
 
@@ -30,7 +33,8 @@
         <%- include('partials/sidebar') %>
             <main>
 
-                <form class="form-editor" id="ocorrencia-form" enctype="multipart/form-data" aria-label="Formulário de inserção de ocorrências">
+                <form class="form-editor" id="ocorrencia-form" enctype="multipart/form-data"
+                    aria-label="Formulário de inserção de ocorrências">
                     <label for="placa-veiculo">Placa do Veículo:</label>
                     <input type="text" id="placa-veiculo" class="placa" name="placaveiculo"
                         placeholder="Digite a placa do veículo" required>
@@ -128,19 +132,23 @@
                                 <% }); %>
                         </tbody>
 
+
+                        
                     </table>
+                    <button id="load-more">Carregar Mais</button>
+
                     <!-- Div de Edição (fora da tabela) -->
-                    <div class="edit-section" style="display: none;">
+                    <form class="edit-section" id="edit-ocorrencia" style="display: none;">
                         <label for="edit-placa-veiculo">Placa do Veículo:</label>
-                        <input type="text" id="edit-placa-veiculo" class="placa" name="placa-veiculo-edit"
+                        <input type="text" id="edit-placa-veiculo" class="placa" name="placaveiculoedit"
                             placeholder="Digite a placa do veículo" required>
 
                         <label for="edit-placa-carreta">Placa da Carreta:</label>
-                        <input type="text" class="placa" id="edit-placa-carreta" name="placa-carreta-edit"
+                        <input type="text" class="placa" id="edit-placa-carreta" name="placacarretaedit"
                             placeholder="Digite a placa da carreta" required>
 
                         <label for="edit-cliente-nome">Nome do Cliente:</label>
-                        <select id="edit-cliente-nome" class="select-client" name="cliente-nome-edit" required>
+                        <select id="edit-cliente-nome" class="select-client" name="idclienteedit" required>
 
                             <% clients.forEach(function(client) { %>
                                 <option value="<%= client.id_cliente %>">
@@ -150,30 +158,30 @@
                         </select>
 
                         <label for="edit-motorista">Motorista:</label>
-                        <input type="text" id="edit-motorista" name="motorista-edit"
+                        <input type="text" id="edit-motorista" name="motoristaedit"
                             placeholder="Digite o nome do motorista" required>
 
                         <label for="edit-descricao">Descrição:</label>
-                        <textarea type="text" id="edit-descricao" name="descricao-edit" placeholder="Digite a descrição"
+                        <textarea type="text" id="edit-descricao" name="descricaoedit" placeholder="Digite a descrição"
                             rows="4" required></textarea>
 
                         <label for="edit-status">Status:</label>
-                        <select id="edit-status" name="status-edit" required>
+                        <select id="edit-status" name="statusedit" required>
                             <option value="Resolvido">Resolvido</option>
                             <option value="Pendente">Pendente</option>
                             <option value="Não Resolvido">Não Resolvido</option>
                         </select>
 
                         <label for="edit-data-ocorrencia">Data da Ocorrência:</label>
-                        <input type="date" id="edit-data-ocorrencia" name="data-ocorrencia-edit"
+                        <input type="date" id="edit-data-ocorrencia" name="dataocorrenciaedit"
                             placeholder="Digite a data da ocorrência" required>
 
                         <label for="edit-hora-ocorrencia">Hora da Ocorrência:</label>
-                        <input type="time" id="edit-hora-ocorrencia" name="hora-ocorrencia-edit"
+                        <input type="time" id="edit-hora-ocorrencia" name="horaocorrenciaedit"
                             placeholder="Digite a hora da ocorrência" required>
 
                         <label for="edit-usuario-login">Login do Usuário:</label>
-                        <select id="edit-usuario-login" name="usuario-login-edit" required>
+                        <select id="edit-usuario-login" name="idusuarioedit" required>
                             <% usuarios.forEach(usuario=> { %>
                                 <option value="<%= usuario.id_usu %>">
                                     <%= usuario.login_usu %>
@@ -182,35 +190,35 @@
                         </select>
 
 
-                        <button type="button" class="save-button">Salvar</button>
+                        <button type="submit" class="save-button">Salvar</button>
                         <button type="button" class="cancel-button">Cancelar</button>
-                    </div>
+                    </form>
 
 
                 </div>
                 <form class="form-search">
                     <label for="placa-veiculo-pesquisa">Placa do Veículo:</label>
                     <input type="text" id="placa-veiculo-pesquisa" class="placa"
-                        placeholder="Pesquise com a placa do veículo" name="placa-veiculo-pesquisa">
+                        placeholder="Pesquise com a placa do veículo" name="placaveiculo">
 
                     <label for="placa-carreta-pesquisa">Placa da Carreta:</label>
                     <input type="text" id="placa-carreta-pesquisa" class="placa"
-                        placeholder="Pesquise com a placa da carreta" name="placa-carreta-pesquisa">
+                        placeholder="Pesquise com a placa da carreta" name="placacarreta">
 
                     <label for="nome-cliente-pesquisa">Nome do Cliente:</label>
                     <input type="text" id="nome-cliente-pesquisa" placeholder="Pesquise com o nome do cliente"
-                        name="nome-cliente-pesquisa">
+                        name="nomecliente">
 
                     <label for="nome-motorista-pesquisa">Nome do Motorista:</label>
                     <input type="text" id="nome-motorista-pesquisa" placeholder="Pesquise com o nome do motorista"
-                        name="nome-motorista-pesquisa">
+                        name="nomemotorista">
 
                     <label for="descricao-pesquisa">Descrição:</label>
                     <textarea id="descricao-pesquisa" placeholder="Pesquise com a descrição da ocorrência"
-                        name="descricao-pesquisa" rows="4"></textarea>
+                        name="descricao" rows="4"></textarea>
 
                     <label for="status-pesquisa">Status:</label>
-                    <select id="status-pesquisa" name="status-pesquisa">
+                    <select id="status-pesquisa" name="status">
                         <option value="">Selecione um Status (opcional)</option>
                         <option value="Resolvido">Resolvido</option>
                         <option value="Pendente">Pendente</option>
@@ -218,16 +226,16 @@
                     </select>
 
                     <label for="data-de-pesquisa">Data de:</label>
-                    <input type="date" id="data-de-pesquisa" name="data-de-pesquisa">
+                    <input type="date" id="data-de-pesquisa" name="datade">
 
                     <label for="data-ate-pesquisa">Data até:</label>
-                    <input type="date" id="data-ate-pesquisa" name="data-ate-pesquisa">
+                    <input type="date" id="data-ate-pesquisa" name="dataate">
 
                     <label for="hora-de-pesquisa">Hora de:</label>
-                    <input type="time" id="hora-de-pesquisa" name="hora-de-pesquisa">
+                    <input type="time" id="hora-de-pesquisa" name="horade">
 
                     <label for="hora-ate-pesquisa">Hora até:</label>
-                    <input type="time" id="hora-ate-pesquisa" name="hora-ate-pesquisa">
+                    <input type="time" id="hora-ate-pesquisa" name="horaate">
 
 
 

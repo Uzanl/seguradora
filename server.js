@@ -16,6 +16,7 @@ const bodyParser = require('body-parser');
 require('jspdf-autotable');
 const generatePdf = require('./generatePdf');
 const multer = require('multer');
+const { Console } = require('console');
 const upload = multer();
 
 
@@ -119,6 +120,28 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
         } else {
             res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios }); // Renderiza a página com os dados
         }
+
+        // Gere o PDF em segundo plano
+        const pdfData = {
+            headers: ['Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
+            rows: ocorrencias.map(row => [
+                row.placa_veiculo,
+                row.placa_carreta,
+                row.cliente_nome,
+                row.motorista,
+                row.descricao,
+                row.status,
+                row.data_ocorrencia,
+                row.hora_ocorrencia,
+                row.usuario_login
+            ])
+        };
+
+        generatePdf(pdfData)
+            .then(message => console.log(message))
+            .catch(err => console.error('Erro ao gerar PDF:', err));
+
+
     } catch (err) {
         console.error('Erro ao buscar ocorrências:', err);
         next(err); // Passa o erro para o middleware de tratamento de erros
@@ -215,32 +238,32 @@ app.delete('/delete-ocorrencia/:id', async (req, res) => {
     }
 });
 
-app.put('/update-ocorrencia/:id', asyncHandler(async (req, res) => {
+app.put('/update-ocorrencia/:id', upload.none(), asyncHandler(async (req, res) => {
     const ocorrenciaId = req.params.id;
     const {
-        'placa-veiculo-edit': placaVeiculo,
-        'placa-carreta-edit': placaCarreta,
-        'id-cliente-edit': idCliente,
-        'motorista-edit': motorista,
-        'descricao-edit': descricao,
-        'status-edit': status,
-        'data-edit': data, // Data e Hora combinados
-        'hora-edit': hora, // Hora separada
-        'id-usuario-edit': idUsuario
+        placaveiculoedit,
+        placacarretaedit,
+        idclienteedit,
+        motoristaedit,
+        descricaoedit,
+        statusedit,
+        dataocorrenciaedit, // Data e Hora combinados
+        horaocorrenciaedit, // Hora separada
+        idusuarioedit
     } = req.body;
 
     // Verificação dos campos obrigatórios
     const missingFields = [];
 
-    if (!placaVeiculo) missingFields.push('Placa do Veículo');
-    if (!placaCarreta) missingFields.push('Placa da Carreta');
-    if (!idCliente) missingFields.push('ID do Cliente');
-    if (!motorista) missingFields.push('Motorista');
-    if (!descricao) missingFields.push('Descrição');
-    if (!status) missingFields.push('Status');
-    if (!data) missingFields.push('Data'); // Data e Hora combinados
-    if (!hora) missingFields.push('Hora'); // Hora separada
-    if (!idUsuario) missingFields.push('ID do Usuário');
+    if (!placaveiculoedit) missingFields.push('Placa do Veículo');
+    if (!placacarretaedit) missingFields.push('Placa da Carreta');
+    if (!idclienteedit) missingFields.push('ID do Cliente');
+    if (!motoristaedit) missingFields.push('Motorista');
+    if (!descricaoedit) missingFields.push('Descrição');
+    if (!statusedit) missingFields.push('Status');
+    if (!dataocorrenciaedit) missingFields.push('Data'); // Data e Hora combinados
+    if (!horaocorrenciaedit) missingFields.push('Hora'); // Hora separada
+    if (!idusuarioedit) missingFields.push('ID do Usuário');
 
     if (missingFields.length > 0) {
         const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
@@ -251,7 +274,7 @@ app.put('/update-ocorrencia/:id', asyncHandler(async (req, res) => {
         const query = promisify(connection.query).bind(connection);
 
         // Combina a data e a hora no campo data
-        const dataHora = `${data} ${hora}`;
+        const dataHora = `${dataocorrenciaedit} ${horaocorrenciaedit}`;
 
         // Atualize a consulta SQL
         const updateQuery = `
@@ -260,14 +283,14 @@ app.put('/update-ocorrencia/:id', asyncHandler(async (req, res) => {
             WHERE id_ocorrencia = ?
         `;
         const result = await query(updateQuery, [
-            placaVeiculo,
-            placaCarreta,
-            idCliente,
-            motorista,
-            descricao,
-            status,
+            placaveiculoedit,
+            placacarretaedit,
+            idclienteedit,
+            motoristaedit,
+            descricaoedit,
+            statusedit,
             dataHora, // Data e Hora combinados
-            idUsuario,
+            idusuarioedit,
             ocorrenciaId
         ]);
 
@@ -327,7 +350,7 @@ app.post('/insert-client', async (req, res) => {
     }
 });
 
-app.post('/insert-ocorrencia',  upload.none(), async (req, res) => {
+app.post('/insert-ocorrencia', upload.none(), async (req, res) => {
     const { placaveiculo, placacarreta, idcliente, nomemotorista, descricao, status } = req.body;
 
     // Verificação dos campos obrigatórios
@@ -435,20 +458,23 @@ app.get('/search-user', async (req, res) => {
     }
 });
 
-app.get('/search-ocorrencia', async (req, res) => {
-    
+app.get('/search-ocorrencia', upload.none(), async (req, res) => {
     const {
-        'placa-veiculo-pesquisa': placaVeiculo,
-        'placa-carreta-pesquisa': placaCarreta,
-        'nome-cliente-pesquisa': nomeCliente,
-        'nome-motorista-pesquisa': nomeMotorista,
-        'descricao-pesquisa': descricao,
-        'status-pesquisa': status,
-        'data-de-pesquisa': dataDe,
-        'data-ate-pesquisa': dataAte,
-        'hora-de-pesquisa': horaDe,
-        'hora-ate-pesquisa': horaAte
+        placaveiculo,
+        placacarreta,
+        nomecliente,
+        nomemotorista,
+        descricao,
+        status,
+        datade,
+        dataate,
+        horade,
+        horaate,
+        offset = 0 // Adiciona suporte ao offset, com valor padrão 0
     } = req.query;
+
+
+ console.log(req.query)
 
     try {
         const query = promisify(connection.query).bind(connection);
@@ -483,45 +509,81 @@ app.get('/search-ocorrencia', async (req, res) => {
         `;
 
         const queryParams = [
-            `${placaVeiculo || ''}%`,
-            `${placaCarreta || ''}%`,
-            `${nomeCliente || ''}%`,
-            `${nomeMotorista || ''}%`,
+            `${placaveiculo || ''}%`,
+            `${placacarreta || ''}%`,
+            `${nomecliente || ''}%`,
+            `${nomemotorista || ''}%`,
             `${descricao || ''}%`,
             `${status || ''}%`
         ];
 
-        if (dataDe && dataAte) {
+        // Adiciona as condições de data e hora
+        if (datade && dataate) {
             searchQuery += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
-            queryParams.push(dataDe, dataAte);
-        } else if (dataDe) {
+            queryParams.push(datade, dataate);
+        } else if (datade) {
             searchQuery += ' AND DATE(ocorrencia.data) = DATE(?)';
-            queryParams.push(dataDe);
-        } else if (dataAte) {
+            queryParams.push(datade);
+        } else if (dataate) {
             searchQuery += ' AND DATE(ocorrencia.data) <= DATE(?)';
-            queryParams.push(dataAte);
+            queryParams.push(dataate);
         }
 
-        if (horaDe && horaAte) {
+        if (horade && horaate) {
             searchQuery += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
-            queryParams.push(horaDe, horaAte);
-        } else if (horaDe) {
+            queryParams.push(horade, horaate);
+        } else if (horade) {
             searchQuery += ' AND TIME(ocorrencia.data) = TIME(?)';
-            queryParams.push(horaDe);
-        } else if (horaAte) {
+            queryParams.push(horade);
+        } else if (horaate) {
             searchQuery += ' AND TIME(ocorrencia.data) <= TIME(?)';
-            queryParams.push(horaAte);
+            queryParams.push(horaate);
         }
 
+        // Adiciona o LIMIT e OFFSET
+        searchQuery += ' LIMIT 100 OFFSET ?';
+        queryParams.push(parseInt(offset, 10));
+
+        // Executa a consulta
         const rows = await query(searchQuery, queryParams);
 
-        // Envie a resposta JSON com os dados ao cliente
         res.json(rows);
 
-        // Gere o PDF em segundo plano
+        // Geração do PDF sem LIMIT e OFFSET
+        const searchQueryPdf = `
+            SELECT
+                ocorrencia.id_ocorrencia,
+                ocorrencia.placa_veiculo,
+                ocorrencia.placa_carreta,
+                cliente.nome AS cliente_nome,
+                ocorrencia.motorista,
+                ocorrencia.descricao,
+                ocorrencia.status,
+                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                usuario.login_usu AS usuario_login,
+                ocorrencia.id_usuario,
+                ocorrencia.id_cliente
+            FROM 
+                ocorrencia
+            INNER JOIN 
+                usuario ON ocorrencia.id_usuario = usuario.id_usu
+            INNER JOIN 
+                cliente ON ocorrencia.id_cliente = cliente.id_cliente
+            WHERE 
+                ocorrencia.placa_veiculo LIKE ? AND
+                ocorrencia.placa_carreta LIKE ? AND
+                cliente.nome LIKE ? AND
+                ocorrencia.motorista LIKE ? AND
+                ocorrencia.descricao LIKE ? AND
+                ocorrencia.status LIKE ?
+        `;
+
+        const rowsPdf = await query(searchQueryPdf, queryParams);
+
         const pdfData = {
             headers: ['Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
-            rows: rows.map(row => [
+            rows: rowsPdf.map(row => [
                 row.placa_veiculo,
                 row.placa_carreta,
                 row.cliente_nome,
@@ -536,15 +598,12 @@ app.get('/search-ocorrencia', async (req, res) => {
 
         generatePdf(pdfData)
             .then(message => console.log(message))
-            .catch(err => console.error(err));
-
+            .catch(err => console.error('Erro ao gerar PDF:', err));
     } catch (err) {
-        console.log("caí aqui!!!")
         console.error('Erro ao buscar ocorrências:', err);
         res.status(500).json({ error: 'Erro ao buscar ocorrências' });
     }
 });
-
 app.put('/update-client/:id', asyncHandler(async (req, res) => {
     const clientId = req.params.id;
     const { nomeedit, cnpjedit } = req.body;

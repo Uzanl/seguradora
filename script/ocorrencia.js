@@ -1,5 +1,10 @@
 const OcorrenciaForm = document.getElementById('ocorrencia-form');
 const CancelBtn = document.querySelector('.cancel-button');
+const EditSection = document.querySelector('.edit-section');
+const SaveButton = document.querySelector('.save-button');
+const tableBody = document.getElementById('ocorrencias-table-body');
+const PdfButton = document.getElementById('export-pdf-button');
+const EditOCorrencia = document.getElementById('edit-ocorrencia');
 
 $(document).ready(function () {
 
@@ -35,37 +40,50 @@ $(document).ready(function () {
     });
 });
 
-document.getElementById('ocorrencia-form').addEventListener('submit', async (event) => {
+const handleOcorrenciaSubmit = async (event, isUpdate = false) => {
     event.preventDefault(); // Previne o envio padrão do formulário
+
     const form = event.target;
     const formData = new FormData(form);
+    let url = '/insert-ocorrencia';
+    let method = 'POST';
+
+    // Se for uma atualização, modifique a URL e o método
+    if (isUpdate) {
+        const saveButton = form.querySelector('button.save-button');
+        const ocorrenciaId = saveButton.getAttribute('data-id');
+        url = `/update-ocorrencia/${ocorrenciaId}`;
+        method = 'PUT';
+    }
 
     try {
-        // Envia os dados para o servidor
-        const response = await fetch('/insert-ocorrencia', {
-            method: 'POST',
-            body: formData
+        const response = await fetch(url, {
+            method: method,
+            body: formData,
+            credentials: 'same-origin' // Inclua se necessário para cookies
         });
 
-        // Verifica se a resposta foi bem-sucedida
-        if (!response.ok) {
-            throw new Error('Erro ao enviar os dados.');
+        if (response.ok) {
+            const successMessage = isUpdate
+                ? 'Ocorrência atualizada com sucesso.'
+                : 'Ocorrência cadastrada com sucesso!';
+            alert(successMessage);
+            updateOcorrenciaList();
+            if (!isUpdate) form.reset(); // Limpa o formulário apenas para novos cadastros
+        } else {
+            const errorData = await response.json();
+            alert(`Erro: ${errorData.error}`);
         }
-
-        // Trata a resposta do servidor
-        const result = await response.json();
-        console.log('Dados enviados com sucesso:', result);
-
-        // Exibe uma mensagem de sucesso ou redireciona o usuário, conforme necessário
-        alert('Ocorrência cadastrada com sucesso!');
-        updateOcorrenciaList();
-        form.reset(); // Limpa o formulário
-
     } catch (error) {
-        console.error('Erro:', error);
-        alert('Ocorreu um erro ao cadastrar a ocorrência.');
+        console.error('Erro ao enviar os dados:', error);
+        alert('Ocorreu um erro ao processar a ocorrência.');
     }
-});
+};
+
+// Associa os eventos aos formulários
+EditOCorrencia.addEventListener('submit', (event) => handleOcorrenciaSubmit(event, true));
+OcorrenciaForm.addEventListener('submit', handleOcorrenciaSubmit);
+
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -75,46 +93,15 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-async function searchOcorrencias() {
-    const placaVeiculo = document.getElementById('placa-veiculo-pesquisa').value;
-    const placaCarreta = document.getElementById('placa-carreta-pesquisa').value;
-    const nomeCliente = document.getElementById('nome-cliente-pesquisa').value;
-    const nomeMotorista = document.getElementById('nome-motorista-pesquisa').value;
-    const descricao = document.getElementById('descricao-pesquisa').value;
-    const status = document.getElementById('status-pesquisa').value;
-    const dataDe = document.getElementById('data-de-pesquisa').value;
-    const dataAte = document.getElementById('data-ate-pesquisa').value;
-    const horaDe = document.getElementById('hora-de-pesquisa').value;
-    const horaAte = document.getElementById('hora-ate-pesquisa').value;
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.form-search input, .form-search select, .form-search textarea')
+        .forEach(input => input.addEventListener('input', searchOcorrencias));
+});
 
-    try {
-        const query = new URLSearchParams({
-            'placa-veiculo-pesquisa': placaVeiculo,
-            'placa-carreta-pesquisa': placaCarreta,
-            'nome-cliente-pesquisa': nomeCliente,
-            'nome-motorista-pesquisa': nomeMotorista,
-            'descricao-pesquisa': descricao,
-            'status-pesquisa': status,
-            'data-de-pesquisa': dataDe,
-            'data-ate-pesquisa': dataAte,
-            'hora-de-pesquisa': horaDe,
-            'hora-ate-pesquisa': horaAte
-        });
-
-        const response = await fetch(`/search-ocorrencia?${query.toString()}`);
-
-        if (!response.ok) throw new Error('Erro ao buscar ocorrências');
-        const ocorrencias = await response.json();
-        renderOcorrencias(ocorrencias);
-    } catch (err) {
-        console.error('Erro ao buscar ocorrências:', err);
-    }
-}
+//let offset = 0;
 
 function renderOcorrencias(ocorrencias) {
-    console.time("teste");
-    const tableBody = document.getElementById('ocorrencias-table-body');
-    tableBody.innerHTML = '';
+    // const tableBody = document.querySelector('#table-body'); // Certifique-se de que #table-body é o ID correto
     ocorrencias.forEach(ocorrencia => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', ocorrencia.id_ocorrencia);
@@ -139,12 +126,58 @@ function renderOcorrencias(ocorrencias) {
         `;
         tableBody.appendChild(row);
     });
-
-    console.timeEnd("teste");
 }
 
+let offset = 0; // Inicia o offset em 0
+
+async function searchOcorrencias(event, loadMore = false) {
+    if (event) event.preventDefault();
+
+    if (!loadMore) {
+        // Reseta o offset se não for uma ação de "Carregar Mais"
+        offset = 0;
+    }
+
+    const form = document.querySelector('.form-search');
+    const queryParams = new URLSearchParams(new FormData(form));
+    queryParams.append('offset', offset);
+
+    try {
+        const response = await fetch(`/search-ocorrencia?${queryParams}`, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Erro ao buscar ocorrências');
+
+        const ocorrencias = await response.json();
+        if (loadMore) {
+            renderOcorrencias(ocorrencias); // Adiciona as novas ocorrências
+        } else {
+            tableBody.innerHTML = ''; // Limpa a tabela existente
+            renderOcorrencias(ocorrencias); // Renderiza as novas ocorrências
+        }
+
+        // Incrementa o offset apenas se "Carregar Mais" foi clicado
+        if (ocorrencias.length === 100) {
+            offset += 100;
+        }
+
+        // Esconde o botão se menos de 100 resultados forem retornados
+        if (ocorrencias.length < 100) {
+            document.querySelector('#load-more').style.display = 'none';
+        } else {
+            document.querySelector('#load-more').style.display = 'block';
+        }
+
+    } catch (err) {
+        console.error('Erro ao buscar ocorrências:', err);
+    }
+}
+
+// Adicione um listener ao botão de "Carregar Mais"
+document.querySelector('#load-more').addEventListener('click', (event) => {
+    searchOcorrencias(event, true);
+});
+
 async function updateOcorrenciaList() {
-    console.log("cheguei aqui!!!")
+
     try {
         const response = await fetch('/ocorrencia', { headers: { 'Accept': 'application/json' } });
         const data = await response.json();
@@ -186,8 +219,6 @@ async function deleteOcorrencia(ocorrenciaId) {
 }
 
 function addEventListenersToOcorrenciaButtons() {
-    const tableBody = document.getElementById('ocorrencias-table-body');
-
     tableBody.addEventListener('click', event => {
         const target = event.target.closest('button');
         if (!target) return; // Ignorar se o alvo não for um botão
@@ -202,28 +233,13 @@ function addEventListenersToOcorrenciaButtons() {
     });
 }
 
-// Adiciona um event listener separado para o botão de salvar
-function addEventListenerToSaveButton() {
-    document.addEventListener('click', event => {
-        const target = event.target.closest('button.save-button');
-        if (!target) return; // Ignorar se o alvo não for um botão de salvar
-
-        const ocorrenciaId = target.getAttribute('data-id');
-        updateOcorrencia(ocorrenciaId);
-    });
-}
-
-addEventListenerToSaveButton();
-
 function editOcorrencia(ocorrenciaId) {
     const listItem = document.querySelector(`tr[data-id="${ocorrenciaId}"]`);
     document.getElementById('edit-placa-veiculo').value = listItem.querySelector('.placa-veiculo').innerText;
     document.getElementById('edit-placa-carreta').value = listItem.querySelector('.placa-carreta').innerText;
-    //document.getElementById('edit-cliente-nome').value = listItem.querySelector('.cliente-nome').innerText;
     document.getElementById('edit-motorista').value = listItem.querySelector('.motorista').innerText;
     document.getElementById('edit-descricao').value = listItem.querySelector('.descricao').innerText;
     document.getElementById('edit-status').value = listItem.querySelector('.status').innerText;
-
 
     const dataOcorrencia = listItem.querySelector('.data-ocorrencia').innerText;
     const formattedDataOcorrencia = formatDateForInput(dataOcorrencia);
@@ -233,94 +249,36 @@ function editOcorrencia(ocorrenciaId) {
     document.getElementById('edit-hora-ocorrencia').value = listItem.querySelector('.hora-ocorrencia').innerText;
 
     // Definir o data-id da div de edição
-    document.querySelector('.edit-section').dataset.id = ocorrenciaId;
-    document.querySelector('.save-button').dataset.id = ocorrenciaId;
+    EditSection.dataset.id = ocorrenciaId;
+    SaveButton.dataset.id = ocorrenciaId;
 
     // Preencher o select de usuário
     const usuarioId = listItem.querySelector('.usuario-login').dataset.id;
-    console.log(usuarioId)
     document.getElementById('edit-usuario-login').value = usuarioId;
-
 
     // Supondo que você tem o `clientId` disponível
     const clientId = listItem.querySelector('.cliente-nome').dataset.id;
-    console.log(clientId);
 
     // Atualiza o Select2 com o valor do `clientId`
     $('#edit-cliente-nome').val(clientId).trigger('change');
 
     // Exibir a seção de edição
-    document.querySelector('.edit-section').style.display = 'flex';
+    EditSection.style.display = 'flex';
 }
-
-
 
 if (CancelBtn) {
     CancelBtn.addEventListener('click', () => {
-        document.querySelector('.edit-section').style.display = 'none';
+        EditSection.style.display = 'none';
     });
 }
-
 
 function formatDateForInput(dateString) {
     const [day, month, year] = dateString.split('/');
     return `${year}-${month}-${day}`;
 }
 
-async function updateOcorrencia(ocorrenciaId) {
-
-    const placaVeiculo = document.getElementById('edit-placa-veiculo').value;
-    const placaCarreta = document.getElementById('edit-placa-carreta').value;
-    const clienteNome = document.getElementById('edit-cliente-nome').value;
-    const motorista = document.getElementById('edit-motorista').value;
-    const descricao = document.getElementById('edit-descricao').value;
-    const status = document.getElementById('edit-status').value;
-    const dataOcorrencia = document.getElementById('edit-data-ocorrencia').value;
-    const horaOcorrencia = document.getElementById('edit-hora-ocorrencia').value;
-    const usuarioId = document.getElementById('edit-usuario-login').value;
-
-    console.log(usuarioId)
-
-    //const ocorrenciaId = document.querySelector('#edit-section').dataset.idOcorrencia;
-
-    try {
-        const response = await fetch(`/update-ocorrencia/${ocorrenciaId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                'placa-veiculo-edit': placaVeiculo,
-                'placa-carreta-edit': placaCarreta,
-                'id-cliente-edit': clienteNome,
-                'motorista-edit': motorista,
-                'descricao-edit': descricao,
-                'status-edit': status,
-                'data-edit': dataOcorrencia,
-                'hora-edit': horaOcorrencia,
-                'id-usuario-edit': usuarioId
-            })
-        });
-
-        if (response.ok) {
-            alert('Ocorrência atualizada com sucesso.');
-            location.reload(); // Recarregar a página para ver as atualizações
-        } else {
-            const errorData = await response.json();
-            alert(`Erro: ${errorData.error}`);
-        }
-    } catch (error) {
-        console.error('Erro ao atualizar ocorrência:', error);
-        alert('Erro ao atualizar ocorrência.');
-    }
-
-}
-
 addEventListenersToOcorrenciaButtons();
 
-document.getElementById('export-pdf-button').addEventListener('click', () => {
-    console.time("teste")
-    // Abre a rota que gera o PDF e força o download do arquivo
+PdfButton.addEventListener('click', () => {
     window.location.href = '/download-pdf';
-    console.timeEnd("teste")
 });
