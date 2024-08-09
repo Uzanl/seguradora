@@ -160,11 +160,14 @@ ORDER BY
             query(usuariosQuery)
         ]);
 
+        const isAdmin = req.session.userType === 'Administrador';
+        console.log(req.session.userType)
+
         // Verifica se a solicitação é para JSON (feita via fetch)
         if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
             res.json({ ocorrencias, clients, usuarios }); // Retorna os dados como JSON
         } else {
-            res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios }); // Renderiza a página com os dados
+            res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios, isAdmin }); // Renderiza a página com os dados
         }
 
         // Gere o PDF em segundo plano com todos os dados
@@ -193,7 +196,6 @@ ORDER BY
         next(err); // Passa o erro para o middleware de tratamento de erros
     }
 }));
-
 
 app.get('/cliente', asyncHandler(async (req, res, next) => {
     try {
@@ -871,30 +873,41 @@ app.get('/download-pdf', (req, res) => {
     });
 });
 
-app.post('/login', (req, res) => {
-    const { login_usu, senha_usu } = req.body;
+app.post('/login', upload.none(), async (req, res) => {
+    const { login, password } = req.body;
 
-    // Consulta ao banco de dados para verificar o usuário
-    const query = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario WHERE login_usu = ?';
-    db.query(query, [login_usu], (err, results) => {
-        if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
-        if (results.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
+    // Verificação dos campos obrigatórios
+    if (!login || !password) {
+        return res.status(400).json({ error: 'Login e senha são obrigatórios.' });
+    }
+
+    try {
+        // Conecte-se ao banco de dados e verifique o usuário (exemplo simplificado)
+        const query = promisify(connection.query).bind(connection);
+        const selectQuery = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario WHERE login_usu = ?';
+        const results = await query(selectQuery, [login]);
+
+        if (results.length === 0) {
+            return res.status(401).json({ error: 'Usuário não encontrado.' });
+        }
 
         const user = results[0];
 
         // Verifica se a senha está correta
-        if (senha_usu === user.senha_usu) {
+        if (password === user.senha_usu) {
             // Armazenar informações na sessão
             req.session.userId = user.id_usu;
             req.session.username = user.login_usu;
             req.session.userType = user.tipo;
 
-            // Redireciona para a rota /ocorrencia
-            res.redirect('/ocorrencia');
+            res.status(200).json({ message: 'Login bem-sucedido' });
         } else {
             res.status(401).json({ error: 'Senha incorreta' });
         }
-    });
+    } catch (err) {
+        console.error('Erro ao realizar login:', err);
+        res.status(500).json({ error: 'Erro ao realizar login.' });
+    }
 });
 
 app.post('/logout', (req, res) => {
@@ -903,7 +916,6 @@ app.post('/logout', (req, res) => {
         res.status(200).json({ message: 'Logout realizado com sucesso' });
     });
 });
-
 
 // Middleware de Tratamento de Erros Global
 app.use((err, req, res, next) => {
