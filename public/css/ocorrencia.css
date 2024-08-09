@@ -135,9 +135,7 @@ button {
     overflow-y: auto;
     border: 1px solid #ddd;
 }
-#ocorrencias-table-body {
-    /* Adicione estilos se necessário */
-}
+
 .loading {
     text-align: center;
     padding: 10px;
@@ -149,3 +147,7 @@ button {
     text-align: center;
     padding: 10px;
 }
+
+/*.load-more{
+    display: none;
+}*/

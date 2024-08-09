@@ -16,7 +16,7 @@ const bodyParser = require('body-parser');
 require('jspdf-autotable');
 const generatePdf = require('./generatePdf');
 const multer = require('multer');
-const { Console } = require('console');
+const { Console, log } = require('console');
 const upload = multer();
 
 
@@ -75,7 +75,11 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
     try {
         const query = promisify(connection.query).bind(connection);
 
-        // Consulta para buscar ocorrências
+        // Obtém o offset da query string, se não houver, define como 0
+        const offset = parseInt(req.query.offset) || 0;
+        const limit = 100; // Limite fixo de 100 registros
+
+        // Consulta para buscar ocorrências com offset e limit
         const ocorrenciasQuery = `
             SELECT
                 ocorrencia.id_ocorrencia, 
@@ -97,8 +101,37 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
             INNER JOIN 
                 cliente ON ocorrencia.id_cliente = cliente.id_cliente
             ORDER BY 
-                ocorrencia.data DESC
-            LIMIT 100;
+                ocorrencia.data DESC,
+                ocorrencia.id_ocorrencia DESC
+
+            LIMIT ?, ?;
+        `;
+
+        // Consulta para buscar todos os registros (para PDF)
+        const allOcorrenciasQuery = `
+            SELECT
+                ocorrencia.id_ocorrencia, 
+                ocorrencia.placa_veiculo,
+                ocorrencia.placa_carreta,
+                cliente.nome AS cliente_nome,
+                ocorrencia.motorista,
+                ocorrencia.descricao,
+                ocorrencia.status,
+                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                usuario.login_usu AS usuario_login,
+                ocorrencia.id_usuario,
+                ocorrencia.id_cliente
+            FROM 
+                ocorrencia
+            INNER JOIN 
+                usuario ON ocorrencia.id_usuario = usuario.id_usu
+            INNER JOIN 
+                cliente ON ocorrencia.id_cliente = cliente.id_cliente
+            ORDER BY 
+                ocorrencia.data DESC,
+                ocorrencia.id_ocorrencia DESC;
+
         `;
 
         // Consulta para buscar todos os clientes
@@ -108,8 +141,9 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
         const usuariosQuery = 'SELECT id_usu, login_usu FROM usuario';
 
         // Executar as consultas em paralelo
-        const [ocorrencias, clients, usuarios] = await Promise.all([
-            query(ocorrenciasQuery),
+        const [ocorrencias, allOcorrencias, clients, usuarios] = await Promise.all([
+            query(ocorrenciasQuery, [offset, limit]),
+            query(allOcorrenciasQuery), // Consulta para todos os dados
             query(clientesQuery),
             query(usuariosQuery)
         ]);
@@ -121,10 +155,11 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
             res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios }); // Renderiza a página com os dados
         }
 
-        // Gere o PDF em segundo plano
+        // Gere o PDF em segundo plano com todos os dados
         const pdfData = {
-            headers: ['Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
-            rows: ocorrencias.map(row => [
+            headers: ['ID', 'Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
+            rows: allOcorrencias.map(row => [
+                row.id_ocorrencia,
                 row.placa_veiculo,
                 row.placa_carreta,
                 row.cliente_nome,
@@ -141,12 +176,12 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
             .then(message => console.log(message))
             .catch(err => console.error('Erro ao gerar PDF:', err));
 
-
     } catch (err) {
         console.error('Erro ao buscar ocorrências:', err);
         next(err); // Passa o erro para o middleware de tratamento de erros
     }
 }));
+
 
 app.get('/cliente', asyncHandler(async (req, res, next) => {
     try {
@@ -473,8 +508,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
         offset = 0 // Adiciona suporte ao offset, com valor padrão 0
     } = req.query;
 
-
- console.log(req.query)
+    console.log(req.query);
 
     try {
         const query = promisify(connection.query).bind(connection);
@@ -506,6 +540,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
                 ocorrencia.motorista LIKE ? AND
                 ocorrencia.descricao LIKE ? AND
                 ocorrencia.status LIKE ?
+                
         `;
 
         const queryParams = [
@@ -541,16 +576,16 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
         }
 
         // Adiciona o LIMIT e OFFSET
-        searchQuery += ' LIMIT 100 OFFSET ?';
+        searchQuery += ' ORDER BY ocorrencia.data DESC, ocorrencia.id_ocorrencia DESC LIMIT 100 OFFSET ?';
         queryParams.push(parseInt(offset, 10));
 
-        // Executa a consulta
+        // Executa a consulta principal
         const rows = await query(searchQuery, queryParams);
 
         res.json(rows);
 
         // Geração do PDF sem LIMIT e OFFSET
-        const searchQueryPdf = `
+        let searchQueryPdf = `
             SELECT
                 ocorrencia.id_ocorrencia,
                 ocorrencia.placa_veiculo,
@@ -577,13 +612,35 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
                 ocorrencia.motorista LIKE ? AND
                 ocorrencia.descricao LIKE ? AND
                 ocorrencia.status LIKE ?
+                  ORDER BY 
+                ocorrencia.data DESC,
+                 ocorrencia.id_ocorrencia DESC;
         `;
 
+        // Reaplica as condições de data e hora na consulta do PDF
+        if (datade && dataate) {
+            searchQueryPdf += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
+        } else if (datade) {
+            searchQueryPdf += ' AND DATE(ocorrencia.data) = DATE(?)';
+        } else if (dataate) {
+            searchQueryPdf += ' AND DATE(ocorrencia.data) <= DATE(?)';
+        }
+
+        if (horade && horaate) {
+            searchQueryPdf += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
+        } else if (horade) {
+            searchQueryPdf += ' AND TIME(ocorrencia.data) = TIME(?)';
+        } else if (horaate) {
+            searchQueryPdf += ' AND TIME(ocorrencia.data) <= TIME(?)';
+        }
+
+        // Executa a consulta do PDF
         const rowsPdf = await query(searchQueryPdf, queryParams);
 
         const pdfData = {
-            headers: ['Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
+            headers: ['ID', 'Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
             rows: rowsPdf.map(row => [
+                row.id_ocorrencia,
                 row.placa_veiculo,
                 row.placa_carreta,
                 row.cliente_nome,

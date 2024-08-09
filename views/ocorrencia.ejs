@@ -22,7 +22,7 @@
         defer></script>
     <script src="/script/utils.js" defer></script>
     <script src="/script/ocorrencia.js" defer></script>
-  <!-- <script src="/script/infinite-scroll.js" defer></script> -->
+    <!-- <script src="/script/infinite-scroll.js" defer></script> -->
 
 
     <title>Formulário de Ocorrências</title>
@@ -75,6 +75,7 @@
                     <table id="ocorrencias-table">
                         <thead>
                             <tr>
+                                <th>ID</th>
                                 <th>Placa Veículo</th>
                                 <th>Placa Carreta</th>
                                 <th>Cliente</th>
@@ -90,6 +91,9 @@
                         <tbody id="ocorrencias-table-body">
                             <% ocorrencias.forEach(ocorrencia=> { %>
                                 <tr data-id="<%= ocorrencia.id_ocorrencia %>">
+                                    <td>
+                                        <%= ocorrencia.id_ocorrencia %>
+                                    </td>
                                     <td class="placa-veiculo">
                                         <%= ocorrencia.placa_veiculo %>
                                     </td>
@@ -133,66 +137,69 @@
                         </tbody>
 
 
-                        
+
                     </table>
-                    <button id="load-more">Carregar Mais</button>
+                    <!-- Renderize o botão "Carregar Mais" se houver exatamente 100 ocorrências -->
+                    <% if (ocorrencias.length===100) { %>
+                        <button type="button" id="load-more" class="load-more">Carregar Mais</button>
+                        <% } %>
 
-                    <!-- Div de Edição (fora da tabela) -->
-                    <form class="edit-section" id="edit-ocorrencia" style="display: none;">
-                        <label for="edit-placa-veiculo">Placa do Veículo:</label>
-                        <input type="text" id="edit-placa-veiculo" class="placa" name="placaveiculoedit"
-                            placeholder="Digite a placa do veículo" required>
+                            <!-- Div de Edição (fora da tabela) -->
+                            <form class="edit-section" id="edit-ocorrencia" style="display: none;">
+                                <label for="edit-placa-veiculo">Placa do Veículo:</label>
+                                <input type="text" id="edit-placa-veiculo" class="placa" name="placaveiculoedit"
+                                    placeholder="Digite a placa do veículo" required>
 
-                        <label for="edit-placa-carreta">Placa da Carreta:</label>
-                        <input type="text" class="placa" id="edit-placa-carreta" name="placacarretaedit"
-                            placeholder="Digite a placa da carreta" required>
+                                <label for="edit-placa-carreta">Placa da Carreta:</label>
+                                <input type="text" class="placa" id="edit-placa-carreta" name="placacarretaedit"
+                                    placeholder="Digite a placa da carreta" required>
 
-                        <label for="edit-cliente-nome">Nome do Cliente:</label>
-                        <select id="edit-cliente-nome" class="select-client" name="idclienteedit" required>
+                                <label for="edit-cliente-nome">Nome do Cliente:</label>
+                                <select id="edit-cliente-nome" class="select-client" name="idclienteedit" required>
 
-                            <% clients.forEach(function(client) { %>
-                                <option value="<%= client.id_cliente %>">
-                                    <%= client.nome %>
-                                </option>
-                                <% }); %>
-                        </select>
+                                    <% clients.forEach(function(client) { %>
+                                        <option value="<%= client.id_cliente %>">
+                                            <%= client.nome %>
+                                        </option>
+                                        <% }); %>
+                                </select>
 
-                        <label for="edit-motorista">Motorista:</label>
-                        <input type="text" id="edit-motorista" name="motoristaedit"
-                            placeholder="Digite o nome do motorista" required>
+                                <label for="edit-motorista">Motorista:</label>
+                                <input type="text" id="edit-motorista" name="motoristaedit"
+                                    placeholder="Digite o nome do motorista" required>
 
-                        <label for="edit-descricao">Descrição:</label>
-                        <textarea type="text" id="edit-descricao" name="descricaoedit" placeholder="Digite a descrição"
-                            rows="4" required></textarea>
+                                <label for="edit-descricao">Descrição:</label>
+                                <textarea type="text" id="edit-descricao" name="descricaoedit"
+                                    placeholder="Digite a descrição" rows="4" required></textarea>
 
-                        <label for="edit-status">Status:</label>
-                        <select id="edit-status" name="statusedit" required>
-                            <option value="Resolvido">Resolvido</option>
-                            <option value="Pendente">Pendente</option>
-                            <option value="Não Resolvido">Não Resolvido</option>
-                        </select>
+                                <label for="edit-status">Status:</label>
+                                <select id="edit-status" name="statusedit" required>
+                                    <option value="Resolvido">Resolvido</option>
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Não Resolvido">Não Resolvido</option>
+                                </select>
 
-                        <label for="edit-data-ocorrencia">Data da Ocorrência:</label>
-                        <input type="date" id="edit-data-ocorrencia" name="dataocorrenciaedit"
-                            placeholder="Digite a data da ocorrência" required>
+                                <label for="edit-data-ocorrencia">Data da Ocorrência:</label>
+                                <input type="date" id="edit-data-ocorrencia" name="dataocorrenciaedit"
+                                    placeholder="Digite a data da ocorrência" required>
 
-                        <label for="edit-hora-ocorrencia">Hora da Ocorrência:</label>
-                        <input type="time" id="edit-hora-ocorrencia" name="horaocorrenciaedit"
-                            placeholder="Digite a hora da ocorrência" required>
+                                <label for="edit-hora-ocorrencia">Hora da Ocorrência:</label>
+                                <input type="time" id="edit-hora-ocorrencia" name="horaocorrenciaedit"
+                                    placeholder="Digite a hora da ocorrência" required>
 
-                        <label for="edit-usuario-login">Login do Usuário:</label>
-                        <select id="edit-usuario-login" name="idusuarioedit" required>
-                            <% usuarios.forEach(usuario=> { %>
-                                <option value="<%= usuario.id_usu %>">
-                                    <%= usuario.login_usu %>
-                                </option>
-                                <% }) %>
-                        </select>
+                                <label for="edit-usuario-login">Login do Usuário:</label>
+                                <select id="edit-usuario-login" name="idusuarioedit" required>
+                                    <% usuarios.forEach(usuario=> { %>
+                                        <option value="<%= usuario.id_usu %>">
+                                            <%= usuario.login_usu %>
+                                        </option>
+                                        <% }) %>
+                                </select>
 
 
-                        <button type="submit" class="save-button">Salvar</button>
-                        <button type="button" class="cancel-button">Cancelar</button>
-                    </form>
+                                <button type="submit" class="save-button">Salvar</button>
+                                <button type="button" class="cancel-button">Cancelar</button>
+                            </form>
 
 
                 </div>

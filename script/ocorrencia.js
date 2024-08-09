@@ -106,6 +106,7 @@ function renderOcorrencias(ocorrencias) {
         const row = document.createElement('tr');
         row.setAttribute('data-id', ocorrencia.id_ocorrencia);
         row.innerHTML = `
+            <td >${ocorrencia.id_ocorrencia}</td>
             <td class="placa-veiculo">${ocorrencia.placa_veiculo}</td>
             <td class="placa-carreta">${ocorrencia.placa_carreta}</td>
             <td class="cliente-nome" data-id="${ocorrencia.id_cliente}">${ocorrencia.cliente_nome}</td>
@@ -128,15 +129,16 @@ function renderOcorrencias(ocorrencias) {
     });
 }
 
-let offset = 0; // Inicia o offset em 0
+let offsetSearch = 0; // Offset para pesquisa com filtros
+let offsetNoFilter = 100; // Offset para pesquisa sem filtros
 
 async function searchOcorrencias(event, loadMore = false) {
     if (event) event.preventDefault();
 
-    if (!loadMore) {
-        // Reseta o offset se não for uma ação de "Carregar Mais"
-        offset = 0;
-    }
+    offsetNoFilter = 100;
+
+    // Define o offset baseado na condição
+    let offset = loadMore ? offsetSearch : 0;
 
     const form = document.querySelector('.form-search');
     const queryParams = new URLSearchParams(new FormData(form));
@@ -156,7 +158,7 @@ async function searchOcorrencias(event, loadMore = false) {
 
         // Incrementa o offset apenas se "Carregar Mais" foi clicado
         if (ocorrencias.length === 100) {
-            offset += 100;
+            offsetSearch += 100;
         }
 
         // Esconde o botão se menos de 100 resultados forem retornados
@@ -171,12 +173,56 @@ async function searchOcorrencias(event, loadMore = false) {
     }
 }
 
+async function fetchOcorrenciasSemFiltro() {
+    try {
+        const response = await fetch(`/ocorrencia?offset=${offsetNoFilter}`, {
+            headers: { 'Accept': 'application/json' } // Adiciona o cabeçalho Accept
+        });
+
+        if (!response.ok) throw new Error('Erro ao buscar ocorrências');
+
+        const data = await response.json();
+
+
+        renderOcorrencias(data.ocorrencias);
+
+        // Incrementa o offset apenas se "Carregar Mais" foi clicado
+        if (data.ocorrencias.length === 100) {
+            offsetNoFilter += 100;
+        }
+
+        // Esconde o botão se menos de 100 resultados forem retornados
+        if (data.ocorrencias.length < 100) {
+            document.querySelector('#load-more').style.display = 'none';
+        } else {
+            document.querySelector('#load-more').style.display = 'block';
+        }
+
+    } catch (err) {
+        console.error('Erro ao buscar ocorrências:', err);
+    }
+}
+// Função principal que decide qual função chamar com base no preenchimento do formulário
+async function handleSearchOrFetch(event, loadMore = false) {
+    const form = document.querySelector('.form-search');
+    const isFormEmpty = [...form.elements].every(input => input.value.trim() === '');
+
+    if (isFormEmpty) {
+        console.log("caí aqui")
+        await fetchOcorrenciasSemFiltro(); // Chama a função para buscar ocorrências com formulário vazio
+    } else {
+        await searchOcorrencias(event, loadMore); // Chama a função de busca com parâmetros
+    }
+}
+
 // Adicione um listener ao botão de "Carregar Mais"
 document.querySelector('#load-more').addEventListener('click', (event) => {
-    searchOcorrencias(event, true);
+    handleSearchOrFetch(event, true); // Passa `true` para indicar "Carregar Mais"
 });
-
 async function updateOcorrenciaList() {
+
+    // Limpa o conteúdo existente
+    tableBody.innerHTML = '';
 
     try {
         const response = await fetch('/ocorrencia', { headers: { 'Accept': 'application/json' } });
