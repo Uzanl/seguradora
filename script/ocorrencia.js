@@ -5,6 +5,7 @@ const SaveButton = document.querySelector('.save-button');
 const tableBody = document.getElementById('ocorrencias-table-body');
 const PdfButton = document.getElementById('export-pdf-button');
 const EditOCorrencia = document.getElementById('edit-ocorrencia');
+const LoadMoreButton = document.querySelector('#load-more');
 
 $(document).ready(function () {
 
@@ -162,10 +163,14 @@ async function searchOcorrencias(event, loadMore = false) {
         }
 
         // Esconde o botão se menos de 100 resultados forem retornados
-        if (ocorrencias.length < 100) {
-            document.querySelector('#load-more').style.display = 'none';
-        } else {
-            document.querySelector('#load-more').style.display = 'block';
+
+        if (LoadMoreButton) {
+            if (ocorrencias.length < 100) {
+                LoadMoreButton.style.display = 'none';
+            } else {
+                LoadMoreButton.style.display = 'block';
+            }
+
         }
 
     } catch (err) {
@@ -192,11 +197,14 @@ async function fetchOcorrenciasSemFiltro() {
         }
 
         // Esconde o botão se menos de 100 resultados forem retornados
-        if (data.ocorrencias.length < 100) {
-            document.querySelector('#load-more').style.display = 'none';
-        } else {
-            document.querySelector('#load-more').style.display = 'block';
+        if (LoadMoreButton) {
+            if (data.ocorrencias.length < 100) {
+                LoadMoreButton.style.display = 'none';
+            } else {
+                LoadMoreButton.style.display = 'block';
+            }
         }
+
 
     } catch (err) {
         console.error('Erro ao buscar ocorrências:', err);
@@ -215,10 +223,16 @@ async function handleSearchOrFetch(event, loadMore = false) {
     }
 }
 
+
 // Adicione um listener ao botão de "Carregar Mais"
-document.querySelector('#load-more').addEventListener('click', (event) => {
-    handleSearchOrFetch(event, true); // Passa `true` para indicar "Carregar Mais"
-});
+if (LoadMoreButton) {
+    LoadMoreButton.addEventListener('click', (event) => {
+        handleSearchOrFetch(event, true); // Passa `true` para indicar "Carregar Mais"
+    });
+}
+
+
+
 async function updateOcorrenciaList() {
 
     // Limpa o conteúdo existente

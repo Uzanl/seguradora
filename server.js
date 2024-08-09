@@ -77,6 +77,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
 
         // Obtém o offset da query string, se não houver, define como 0
         const offset = parseInt(req.query.offset) || 0;
+        console.log(offset)
         const limit = 100; // Limite fixo de 100 registros
 
         // Consulta para buscar ocorrências com offset e limit
@@ -100,9 +101,15 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 usuario ON ocorrencia.id_usuario = usuario.id_usu
             INNER JOIN 
                 cliente ON ocorrencia.id_cliente = cliente.id_cliente
-            ORDER BY 
-                ocorrencia.data DESC,
-                ocorrencia.id_ocorrencia DESC
+           ORDER BY 
+    CASE 
+        WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+        WHEN ocorrencia.status = 'Pendente' THEN 2
+        WHEN ocorrencia.status = 'Resolvido' THEN 3
+        ELSE 4
+    END,
+    ocorrencia.data DESC,
+    ocorrencia.id_ocorrencia DESC
 
             LIMIT ?, ?;
         `;
@@ -110,28 +117,33 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
         // Consulta para buscar todos os registros (para PDF)
         const allOcorrenciasQuery = `
             SELECT
-                ocorrencia.id_ocorrencia, 
-                ocorrencia.placa_veiculo,
-                ocorrencia.placa_carreta,
-                cliente.nome AS cliente_nome,
-                ocorrencia.motorista,
-                ocorrencia.descricao,
-                ocorrencia.status,
-                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
-                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-                usuario.login_usu AS usuario_login,
-                ocorrencia.id_usuario,
-                ocorrencia.id_cliente
-            FROM 
-                ocorrencia
-            INNER JOIN 
-                usuario ON ocorrencia.id_usuario = usuario.id_usu
-            INNER JOIN 
-                cliente ON ocorrencia.id_cliente = cliente.id_cliente
-            ORDER BY 
-                ocorrencia.data DESC,
-                ocorrencia.id_ocorrencia DESC;
-
+    ocorrencia.id_ocorrencia, 
+    ocorrencia.placa_veiculo,
+    ocorrencia.placa_carreta,
+    cliente.nome AS cliente_nome,
+    ocorrencia.motorista,
+    ocorrencia.descricao,
+    ocorrencia.status,
+    DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+    DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+    usuario.login_usu AS usuario_login,
+    ocorrencia.id_usuario,
+    ocorrencia.id_cliente
+FROM 
+    ocorrencia
+INNER JOIN 
+    usuario ON ocorrencia.id_usuario = usuario.id_usu
+INNER JOIN 
+    cliente ON ocorrencia.id_cliente = cliente.id_cliente
+ORDER BY 
+    CASE 
+        WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+        WHEN ocorrencia.status = 'Pendente' THEN 2
+        WHEN ocorrencia.status = 'Resolvido' THEN 3
+        ELSE 4
+    END,
+    ocorrencia.data DESC,
+    ocorrencia.id_ocorrencia DESC;
         `;
 
         // Consulta para buscar todos os clientes
@@ -495,6 +507,7 @@ app.get('/search-user', async (req, res) => {
 
 app.get('/search-ocorrencia', upload.none(), async (req, res) => {
     const {
+        idocorrencia,
         placaveiculo,
         placacarreta,
         nomecliente,
@@ -534,16 +547,17 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             INNER JOIN 
                 cliente ON ocorrencia.id_cliente = cliente.id_cliente
             WHERE 
+                ocorrencia.id_ocorrencia LIKE ? AND
                 ocorrencia.placa_veiculo LIKE ? AND
                 ocorrencia.placa_carreta LIKE ? AND
                 cliente.nome LIKE ? AND
                 ocorrencia.motorista LIKE ? AND
                 ocorrencia.descricao LIKE ? AND
                 ocorrencia.status LIKE ?
-                
         `;
 
         const queryParams = [
+            `${idocorrencia || ''}%`,
             `${placaveiculo || ''}%`,
             `${placacarreta || ''}%`,
             `${nomecliente || ''}%`,
@@ -575,8 +589,19 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             queryParams.push(horaate);
         }
 
-        // Adiciona o LIMIT e OFFSET
-        searchQuery += ' ORDER BY ocorrencia.data DESC, ocorrencia.id_ocorrencia DESC LIMIT 100 OFFSET ?';
+        // Adiciona o ORDER BY e LIMIT e OFFSET
+        searchQuery += `
+        ORDER BY
+            CASE
+                WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+                WHEN ocorrencia.status = 'Pendente' THEN 2
+                WHEN ocorrencia.status = 'Resolvido' THEN 3
+                ELSE 4
+            END,
+            ocorrencia.data DESC,
+            ocorrencia.id_ocorrencia DESC
+        LIMIT 100 OFFSET ?;
+    `;
         queryParams.push(parseInt(offset, 10));
 
         // Executa a consulta principal
@@ -606,15 +631,13 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             INNER JOIN 
                 cliente ON ocorrencia.id_cliente = cliente.id_cliente
             WHERE 
+                ocorrencia.id_ocorrencia LIKE ? AND
                 ocorrencia.placa_veiculo LIKE ? AND
                 ocorrencia.placa_carreta LIKE ? AND
                 cliente.nome LIKE ? AND
                 ocorrencia.motorista LIKE ? AND
                 ocorrencia.descricao LIKE ? AND
                 ocorrencia.status LIKE ?
-                  ORDER BY 
-                ocorrencia.data DESC,
-                 ocorrencia.id_ocorrencia DESC;
         `;
 
         // Reaplica as condições de data e hora na consulta do PDF
@@ -633,6 +656,18 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
         } else if (horaate) {
             searchQueryPdf += ' AND TIME(ocorrencia.data) <= TIME(?)';
         }
+
+        searchQueryPdf += `
+        ORDER BY
+            CASE
+                WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+                WHEN ocorrencia.status = 'Pendente' THEN 2
+                WHEN ocorrencia.status = 'Resolvido' THEN 3
+                ELSE 4
+            END,
+            ocorrencia.data DESC,
+            ocorrencia.id_ocorrencia DESC;
+        `;
 
         // Executa a consulta do PDF
         const rowsPdf = await query(searchQueryPdf, queryParams);
@@ -824,15 +859,48 @@ app.get('/download-pdf', (req, res) => {
                 return res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
             }
 
-            // Após o download, exclua o arquivo
-            fs.unlink(pdfPath, (err) => {
-                if (err) {
-                    console.error('Erro ao excluir o arquivo:', err);
-                } else {
-                    console.log('Arquivo excluído com sucesso');
-                }
-            });
+            // Remova a parte que exclui o arquivo
+            // fs.unlink(pdfPath, (err) => {
+            //     if (err) {
+            //         console.error('Erro ao excluir o arquivo:', err);
+            //     } else {
+            //         console.log('Arquivo excluído com sucesso');
+            //     }
+            // });
         });
+    });
+});
+
+app.post('/login', (req, res) => {
+    const { login_usu, senha_usu } = req.body;
+
+    // Consulta ao banco de dados para verificar o usuário
+    const query = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario WHERE login_usu = ?';
+    db.query(query, [login_usu], (err, results) => {
+        if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
+        if (results.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
+
+        const user = results[0];
+
+        // Verifica se a senha está correta
+        if (senha_usu === user.senha_usu) {
+            // Armazenar informações na sessão
+            req.session.userId = user.id_usu;
+            req.session.username = user.login_usu;
+            req.session.userType = user.tipo;
+
+            // Redireciona para a rota /ocorrencia
+            res.redirect('/ocorrencia');
+        } else {
+            res.status(401).json({ error: 'Senha incorreta' });
+        }
+    });
+});
+
+app.post('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) return res.status(500).json({ error: 'Erro ao finalizar sessão' });
+        res.status(200).json({ message: 'Logout realizado com sucesso' });
     });
 });
 
