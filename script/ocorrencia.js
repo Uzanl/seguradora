@@ -69,7 +69,6 @@ const handleOcorrenciaSubmit = async (event, isUpdate = false) => {
                 ? 'Ocorrência atualizada com sucesso.'
                 : 'Ocorrência cadastrada com sucesso!';
             alert(successMessage);
-            updateOcorrenciaList();
             if (!isUpdate) form.reset(); // Limpa o formulário apenas para novos cadastros
         } else {
             const errorData = await response.json();
@@ -342,3 +341,36 @@ addEventListenersToOcorrenciaButtons();
 PdfButton.addEventListener('click', () => {
     window.location.href = '/download-pdf';
 });
+
+
+const ws = new WebSocket('wss://localhost:3000');
+
+ws.onopen = () => {
+    console.log('Conexão WebSocket segura estabelecida.');
+};
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === 'new-ocorrencia') {
+        console.log('Nova ocorrência recebida:', data.ocorrencia);
+
+        // Atualiza a lista de ocorrências chamando a função updateOcorrenciaList
+        updateOcorrenciaList();
+
+    } else if (data.type === 'update-ocorrencia') {
+        console.log('Ocorrência atualizada:', data.ocorrencia);
+
+        // Atualiza a lista de ocorrências ou manipula a atualização específica
+        updateOcorrenciaList();  // Esta função pode recarregar a lista ou apenas manipular a atualização específica
+    }
+};
+
+
+ws.onclose = () => {
+    console.log('Conexão WebSocket fechada.');
+};
+
+ws.onerror = (error) => {
+    console.error('Erro na conexão WebSocket:', error);
+};

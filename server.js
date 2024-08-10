@@ -11,13 +11,14 @@ const dbConfig = require('./config/db');
 const cors = require('cors');
 const zlib = require('zlib');
 const { promisify } = require('util');
-const { jsPDF } = require('jspdf');
+//const { jsPDF } = require('jspdf');
 const bodyParser = require('body-parser');
 require('jspdf-autotable');
 const generatePdf = require('./generatePdf');
 const multer = require('multer');
-const { Console, log } = require('console');
+//const { Console, log } = require('console');
 const upload = multer();
+const WebSocket = require('ws');
 
 
 app.use(
@@ -74,6 +75,7 @@ app.set('view engine', 'ejs');
 app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
     if (req.session.userId) {
         try {
+            const userLoggedIn = true;
             const query = promisify(connection.query).bind(connection);
 
             // Obtém o offset da query string, se não houver, define como 0
@@ -168,7 +170,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
             if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
                 res.json({ ocorrencias, clients, usuarios }); // Retorna os dados como JSON
             } else {
-                res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios, isAdmin }); // Renderiza a página com os dados
+                res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios, isAdmin, userLoggedIn }); // Renderiza a página com os dados
             }
 
             // Gere o PDF em segundo plano com todos os dados
@@ -206,6 +208,8 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
 app.get('/cliente', asyncHandler(async (req, res, next) => {
     if (req.session.userId && req.session.userType === "Administrador") {
         try {
+            const isAdmin = true;
+            const userLoggedIn = true
             const query = promisify(connection.query).bind(connection);
             const selectQuery = 'SELECT id_cliente, nome, cnpj FROM cliente ORDER BY id_cliente DESC LIMIT 50';
             const clients = await query(selectQuery);
@@ -218,7 +222,7 @@ app.get('/cliente', asyncHandler(async (req, res, next) => {
                 clients.forEach(client => {
                     client.formattedCNPJ = formatCNPJ(client.cnpj);
                 });
-                res.render('cliente.ejs', { clients }); // Renderiza a página com os dados
+                res.render('cliente.ejs', { clients, userLoggedIn, isAdmin }); // Renderiza a página com os dados
             }
         } catch (err) {
             console.error('Erro ao buscar clientes:', err);
@@ -238,6 +242,8 @@ function formatCNPJ(cnpj) {
 app.get('/usuario', asyncHandler(async (req, res, next) => {
     if (req.session.userId && req.session.userType === "Administrador") {
         try {
+            const isAdmin = true;
+            const userLoggedIn = true;
             const query = promisify(connection.query).bind(connection);
             const selectQuery = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario ORDER BY id_usu DESC LIMIT 50';
             const users = await query(selectQuery);
@@ -247,7 +253,7 @@ app.get('/usuario', asyncHandler(async (req, res, next) => {
                 res.json(users); // Retorna os dados como JSON
             } else {
 
-                res.render('usuario.ejs', { users }); // Renderiza a página com os dados
+                res.render('usuario.ejs', { users, userLoggedIn, isAdmin }); // Renderiza a página com os dados
             }
         } catch (err) {
             console.error('Erro ao buscar usuários:', err);
@@ -367,6 +373,20 @@ app.put('/update-ocorrencia/:id', upload.none(), asyncHandler(async (req, res) =
             ocorrenciaId
         ]);
 
+        // Se a atualização foi bem-sucedida, enviar a ocorrência atualizada via WebSocket
+        const updatedOcorrencia = {
+            id: ocorrenciaId,
+            placa_veiculo: placaveiculoedit,
+            placa_carreta: placacarretaedit,
+            id_cliente: idclienteedit,
+            motorista: motoristaedit,
+            descricao: descricaoedit,
+            status: statusedit,
+            data: dataHora,
+            id_usuario: idusuarioedit
+        };
+        broadcastUpdatedOcorrencia(updatedOcorrencia);
+
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Ocorrência não encontrada.' });
         }
@@ -478,7 +498,15 @@ app.post('/insert-ocorrencia', upload.none(), async (req, res) => {
         // Formatar a data e hora para YYYY-MM-DD HH:MM
         const formattedDataHora = localDate.toISOString().slice(0, 16).replace('T', ' ');
 
-        await query(insertQuery, [idUsuario, idcliente, status, formattedDataHora, placaveiculo, placacarreta, nomemotorista, descricao]);
+        const result = await query(insertQuery, [idUsuario, idcliente, status, formattedDataHora, placaveiculo, placacarreta, nomemotorista, descricao]);
+
+        // Obter a ocorrência recém-inserida para enviar via WebSocket
+        const ocorrenciaId = result.insertId;
+        const ocorrenciaQuery = 'SELECT * FROM ocorrencia WHERE id_ocorrencia = ?';
+        const [newOcorrencia] = await query(ocorrenciaQuery, [ocorrenciaId]);
+
+        // Enviar a nova ocorrência a todos os clientes conectados
+        broadcastNewOcorrencia(newOcorrencia);
 
         res.status(200).json({ message: 'Ocorrência cadastrada com sucesso.' });
     } catch (err) {
@@ -935,10 +963,10 @@ app.post('/login', upload.none(), async (req, res) => {
     }
 });
 
-app.post('/logout', (req, res) => {
+app.get('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) return res.status(500).json({ error: 'Erro ao finalizar sessão' });
-        res.status(200).json({ message: 'Logout realizado com sucesso' });
+        res.redirect('/login'); // Redireciona para a página de login após o logout
     });
 });
 
@@ -959,6 +987,39 @@ const options = {
 };
 
 const server = https.createServer(options, app);
+
+const wss = new WebSocket.Server({ server });
+
+// Manter as conexões WebSocket ativas
+let clients = [];
+
+wss.on('connection', (ws) => {
+    clients.push(ws);
+
+    ws.on('close', () => {
+        clients = clients.filter(client => client !== ws);
+    });
+});
+
+// Função para enviar a nova ocorrência a todos os clientes conectados
+const broadcastNewOcorrencia = (ocorrencia) => {
+    clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'new-ocorrencia', ocorrencia }));
+        }
+    });
+};
+
+const broadcastUpdatedOcorrencia = (ocorrencia) => {
+    clients.forEach(ws => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'update-ocorrencia', ocorrencia }));
+        }
+    });
+};
+
+
+
 
 server.listen(port, () => {
     console.log(`Servidor HTTPS rodando em https://localhost:${port}`);
