@@ -122,14 +122,20 @@
                                     </td>
 
                                     <td class="td-button">
-                                        <button type="button" class="edit-button"
-                                            data-id="<%= ocorrencia.id_ocorrencia %>">
-                                            <img width="30" height="30" src="/images/edit.png" alt="Editar">
-                                        </button>
-                                        <button type="button" class="delete-button"
-                                            data-id="<%= ocorrencia.id_ocorrencia %>">
-                                            <img width="30" height="30" src="/images/delete.png" alt="Excluir">
-                                        </button>
+
+                                        <% if (isAdmin || (ocorrencia.status !=='Resolvido' && !isAdmin)) { %>
+                                            <button type="button" class="edit-button"
+                                                data-id="<%= ocorrencia.id_ocorrencia %>">
+                                                <img width="30" height="30" src="/images/edit.png" alt="Editar">
+                                            </button>
+                                            <% } %>
+                                                <% if (isAdmin) { %>
+                                                    <button type="button" class="delete-button"
+                                                        data-id="<%= ocorrencia.id_ocorrencia %>">
+                                                        <img width="30" height="30" src="/images/delete.png"
+                                                            alt="Excluir">
+                                                    </button>
+                                                    <% } %>
                                     </td>
                                 </tr>
                                 <% }); %>
@@ -143,69 +149,72 @@
                         <button type="button" id="load-more" class="load-more">Carregar Mais</button>
                         <% } %>
 
-                            <!-- Div de Edição (fora da tabela) -->
                             <form class="edit-section" id="edit-ocorrencia" style="display: none;">
-                                <label for="edit-placa-veiculo">Placa do Veículo:</label>
-                                <input type="text" id="edit-placa-veiculo" class="placa" name="placaveiculoedit"
-                                    placeholder="Digite a placa do veículo" required>
+                                <% if (isAdmin) { %>
+                                    <!-- Campos visíveis apenas para administradores -->
+                                    <label for="edit-placa-veiculo">Placa do Veículo:</label>
+                                    <input type="text" id="edit-placa-veiculo" class="placa" name="placaveiculoedit"
+                                        placeholder="Digite a placa do veículo" required>
 
-                                <label for="edit-placa-carreta">Placa da Carreta:</label>
-                                <input type="text" class="placa" id="edit-placa-carreta" name="placacarretaedit"
-                                    placeholder="Digite a placa da carreta" required>
+                                    <label for="edit-placa-carreta">Placa da Carreta:</label>
+                                    <input type="text" class="placa" id="edit-placa-carreta" name="placacarretaedit"
+                                        placeholder="Digite a placa da carreta" required>
 
-                                <label for="edit-cliente-nome">Nome do Cliente:</label>
-                                <select id="edit-cliente-nome" class="select-client" name="idclienteedit" required>
+                                    <label for="edit-cliente-nome">Nome do Cliente:</label>
+                                    <select id="edit-cliente-nome" class="select-client" name="idclienteedit" required>
+                                        <% clients.forEach(function(client) { %>
+                                            <option value="<%= client.id_cliente %>">
+                                                <%= client.nome %>
+                                            </option>
+                                            <% }); %>
+                                    </select>
 
-                                    <% clients.forEach(function(client) { %>
-                                        <option value="<%= client.id_cliente %>">
-                                            <%= client.nome %>
-                                        </option>
-                                        <% }); %>
-                                </select>
+                                    <label for="edit-motorista">Motorista:</label>
+                                    <input type="text" id="edit-motorista" name="motoristaedit"
+                                        placeholder="Digite o nome do motorista" required>
 
-                                <label for="edit-motorista">Motorista:</label>
-                                <input type="text" id="edit-motorista" name="motoristaedit"
-                                    placeholder="Digite o nome do motorista" required>
+                                    <label for="edit-descricao">Descrição:</label>
+                                    <textarea type="text" id="edit-descricao" name="descricaoedit"
+                                        placeholder="Digite a descrição" rows="4" required></textarea>
 
-                                <label for="edit-descricao">Descrição:</label>
-                                <textarea type="text" id="edit-descricao" name="descricaoedit"
-                                    placeholder="Digite a descrição" rows="4" required></textarea>
+                                    <label for="edit-data-ocorrencia">Data da Ocorrência:</label>
+                                    <input type="date" id="edit-data-ocorrencia" name="dataocorrenciaedit"
+                                        placeholder="Digite a data da ocorrência" required>
 
-                                <label for="edit-status">Status:</label>
-                                <select id="edit-status" name="statusedit" required>
-                                    <option value="Resolvido">Resolvido</option>
-                                    <option value="Pendente">Pendente</option>
-                                    <option value="Não Resolvido">Não Resolvido</option>
-                                </select>
+                                    <label for="edit-hora-ocorrencia">Hora da Ocorrência:</label>
+                                    <input type="time" id="edit-hora-ocorrencia" name="horaocorrenciaedit"
+                                        placeholder="Digite a hora da ocorrência" required>
 
-                                <label for="edit-data-ocorrencia">Data da Ocorrência:</label>
-                                <input type="date" id="edit-data-ocorrencia" name="dataocorrenciaedit"
-                                    placeholder="Digite a data da ocorrência" required>
+                                    <label for="edit-usuario-login">Login do Usuário:</label>
+                                    <select id="edit-usuario-login" name="idusuarioedit" required>
+                                        <% usuarios.forEach(usuario=> { %>
+                                            <option value="<%= usuario.id_usu %>">
+                                                <%= usuario.login_usu %>
+                                            </option>
+                                            <% }) %>
+                                    </select>
+                                    <% } %>
 
-                                <label for="edit-hora-ocorrencia">Hora da Ocorrência:</label>
-                                <input type="time" id="edit-hora-ocorrencia" name="horaocorrenciaedit"
-                                    placeholder="Digite a hora da ocorrência" required>
-
-                                <label for="edit-usuario-login">Login do Usuário:</label>
-                                <select id="edit-usuario-login" name="idusuarioedit" required>
-                                    <% usuarios.forEach(usuario=> { %>
-                                        <option value="<%= usuario.id_usu %>">
-                                            <%= usuario.login_usu %>
-                                        </option>
-                                        <% }) %>
-                                </select>
+                                        <!-- Campo que deve estar visível para todos os usuários -->
+                                        <label for="edit-status">Status:</label>
+                                        <select id="edit-status" name="statusedit" required>
+                                            <option value="Resolvido">Resolvido</option>
+                                            <option value="Pendente">Pendente</option>
+                                            <option value="Não Resolvido">Não Resolvido</option>
+                                        </select>
 
 
-                                <button type="submit" class="save-button">Salvar</button>
-                                <button type="button" class="cancel-button">Cancelar</button>
+                                        <button type="submit" class="save-button">Salvar</button>
+                                        <button type="button" class="cancel-button">Cancelar</button>
+
                             </form>
 
 
                 </div>
                 <form class="form-search">
                     <label for="id-ocorrencia-pesquisa">ID da ocorrência:</label>
-                    <input type="text" id="id-ocorrencia-pesquisa"
-                        placeholder="Pesquise com a placa do veículo" name="idocorrencia">
+                    <input type="text" id="id-ocorrencia-pesquisa" placeholder="Pesquise com a placa do veículo"
+                        name="idocorrencia">
 
                     <label for="placa-veiculo-pesquisa">Placa do Veículo:</label>
                     <input type="text" id="placa-veiculo-pesquisa" class="placa"

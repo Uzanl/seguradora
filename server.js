@@ -168,7 +168,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
 
             // Verifica se a solicitação é para JSON (feita via fetch)
             if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
-                res.json({ ocorrencias, clients, usuarios }); // Retorna os dados como JSON
+                res.json({ ocorrencias, clients, usuarios, isAdmin }); // Retorna os dados como JSON
             } else {
                 res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios, isAdmin, userLoggedIn }); // Renderiza a página com os dados
             }
@@ -331,18 +331,29 @@ app.put('/update-ocorrencia/:id', upload.none(), asyncHandler(async (req, res) =
         idusuarioedit
     } = req.body;
 
-    // Verificação dos campos obrigatórios
-    const missingFields = [];
+    // Supomos que o ID do usuário é enviado no corpo ou nos headers
+    const userId = req.body.userId; // Ajuste conforme a sua implementação
 
-    if (!placaveiculoedit) missingFields.push('Placa do Veículo');
-    if (!placacarretaedit) missingFields.push('Placa da Carreta');
-    if (!idclienteedit) missingFields.push('ID do Cliente');
-    if (!motoristaedit) missingFields.push('Motorista');
-    if (!descricaoedit) missingFields.push('Descrição');
-    if (!statusedit) missingFields.push('Status');
-    if (!dataocorrenciaedit) missingFields.push('Data'); // Data e Hora combinados
-    if (!horaocorrenciaedit) missingFields.push('Hora'); // Hora separada
-    if (!idusuarioedit) missingFields.push('ID do Usuário');
+
+
+    // Verifica se o usuário é admin
+    const isAdmin = req.session.userType === "Administrador" // Função fictícia para verificar se o usuário é admin
+
+    // Verifica quais campos são obrigatórios com base no tipo de usuário
+    const missingFields = [];
+    if (isAdmin) {
+        if (!placaveiculoedit) missingFields.push('Placa do Veículo');
+        if (!placacarretaedit) missingFields.push('Placa da Carreta');
+        if (!idclienteedit) missingFields.push('ID do Cliente');
+        if (!motoristaedit) missingFields.push('Motorista');
+        if (!descricaoedit) missingFields.push('Descrição');
+        if (!statusedit) missingFields.push('Status');
+        if (!dataocorrenciaedit) missingFields.push('Data'); // Data e Hora combinados
+        if (!horaocorrenciaedit) missingFields.push('Hora'); // Hora separada
+        if (!idusuarioedit) missingFields.push('ID do Usuário');
+    } else {
+        if (!statusedit) missingFields.push('Status');
+    }
 
     if (missingFields.length > 0) {
         const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
@@ -355,23 +366,41 @@ app.put('/update-ocorrencia/:id', upload.none(), asyncHandler(async (req, res) =
         // Combina a data e a hora no campo data
         const dataHora = `${dataocorrenciaedit} ${horaocorrenciaedit}`;
 
-        // Atualize a consulta SQL
-        const updateQuery = `
-            UPDATE ocorrencia
-            SET placa_veiculo = ?, placa_carreta = ?, id_cliente = ?, motorista = ?, descricao = ?, status = ?, data = ?, id_usuario = ?
-            WHERE id_ocorrencia = ?
-        `;
-        const result = await query(updateQuery, [
-            placaveiculoedit,
-            placacarretaedit,
-            idclienteedit,
-            motoristaedit,
-            descricaoedit,
-            statusedit,
-            dataHora, // Data e Hora combinados
-            idusuarioedit,
-            ocorrenciaId
-        ]);
+        // Atualiza a consulta SQL com base no tipo de usuário
+        let updateQuery;
+        let queryParams;
+
+        if (isAdmin) {
+            updateQuery = `
+                UPDATE ocorrencia
+                SET placa_veiculo = ?, placa_carreta = ?, id_cliente = ?, motorista = ?, descricao = ?, status = ?, data = ?, id_usuario = ?
+                WHERE id_ocorrencia = ?
+            `;
+            queryParams = [
+                placaveiculoedit,
+                placacarretaedit,
+                idclienteedit,
+                motoristaedit,
+                descricaoedit,
+                statusedit,
+                dataHora, // Data e Hora combinados
+                idusuarioedit,
+                ocorrenciaId
+            ];
+        } else {
+            updateQuery = `
+                UPDATE ocorrencia
+                SET status = ?
+                WHERE id_ocorrencia = ?
+            `;
+            queryParams = [statusedit, ocorrenciaId];
+        }
+
+        const result = await query(updateQuery, queryParams);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+        }
 
         // Se a atualização foi bem-sucedida, enviar a ocorrência atualizada via WebSocket
         const updatedOcorrencia = {
@@ -386,10 +415,6 @@ app.put('/update-ocorrencia/:id', upload.none(), asyncHandler(async (req, res) =
             id_usuario: idusuarioedit
         };
         broadcastUpdatedOcorrencia(updatedOcorrencia);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
-        }
 
         res.status(200).json({ message: 'Ocorrência atualizada com sucesso.' });
     } catch (err) {
@@ -560,195 +585,215 @@ app.get('/search-user', async (req, res) => {
 });
 
 app.get('/search-ocorrencia', upload.none(), async (req, res) => {
-    const {
-        idocorrencia,
-        placaveiculo,
-        placacarreta,
-        nomecliente,
-        nomemotorista,
-        descricao,
-        status,
-        datade,
-        dataate,
-        horade,
-        horaate,
-        offset = 0 // Adiciona suporte ao offset, com valor padrão 0
-    } = req.query;
 
-    console.log(req.query);
+    if (req.session.userId) {
 
-    try {
-        const query = promisify(connection.query).bind(connection);
+       let isAdmin;
+       
 
-        let searchQuery = `
-            SELECT
-                ocorrencia.id_ocorrencia,
-                ocorrencia.placa_veiculo,
-                ocorrencia.placa_carreta,
-                cliente.nome AS cliente_nome,
-                ocorrencia.motorista,
-                ocorrencia.descricao,
-                ocorrencia.status,
-                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
-                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-                usuario.login_usu AS usuario_login,
-                ocorrencia.id_usuario,
-                ocorrencia.id_cliente
-            FROM 
-                ocorrencia
-            INNER JOIN 
-                usuario ON ocorrencia.id_usuario = usuario.id_usu
-            INNER JOIN 
-                cliente ON ocorrencia.id_cliente = cliente.id_cliente
-            WHERE 
-                ocorrencia.id_ocorrencia LIKE ? AND
-                ocorrencia.placa_veiculo LIKE ? AND
-                ocorrencia.placa_carreta LIKE ? AND
-                cliente.nome LIKE ? AND
-                ocorrencia.motorista LIKE ? AND
-                ocorrencia.descricao LIKE ? AND
-                ocorrencia.status LIKE ?
+        const {
+            idocorrencia,
+            placaveiculo,
+            placacarreta,
+            nomecliente,
+            nomemotorista,
+            descricao,
+            status,
+            datade,
+            dataate,
+            horade,
+            horaate,
+            offset = 0,
+              // Adiciona suporte ao offset, com valor padrão 0
+        } = req.query;
+
+        console.log(req.query);
+
+        if (req.session.userType === "Administrador") {
+            isAdmin =true;
+       }
+
+        try {
+            const query = promisify(connection.query).bind(connection);
+
+            let searchQuery = `
+                SELECT
+                    ocorrencia.id_ocorrencia,
+                    ocorrencia.placa_veiculo,
+                    ocorrencia.placa_carreta,
+                    cliente.nome AS cliente_nome,
+                    ocorrencia.motorista,
+                    ocorrencia.descricao,
+                    ocorrencia.status,
+                    DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                    DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                    usuario.login_usu AS usuario_login,
+                    ocorrencia.id_usuario,
+                    ocorrencia.id_cliente
+                FROM 
+                    ocorrencia
+                INNER JOIN 
+                    usuario ON ocorrencia.id_usuario = usuario.id_usu
+                INNER JOIN 
+                    cliente ON ocorrencia.id_cliente = cliente.id_cliente
+                WHERE 
+                    ocorrencia.id_ocorrencia LIKE ? AND
+                    ocorrencia.placa_veiculo LIKE ? AND
+                    ocorrencia.placa_carreta LIKE ? AND
+                    cliente.nome LIKE ? AND
+                    ocorrencia.motorista LIKE ? AND
+                    ocorrencia.descricao LIKE ? AND
+                    ocorrencia.status LIKE ?
+            `;
+
+            const queryParams = [
+                `${idocorrencia || ''}%`,
+                `${placaveiculo || ''}%`,
+                `${placacarreta || ''}%`,
+                `${nomecliente || ''}%`,
+                `${nomemotorista || ''}%`,
+                `${descricao || ''}%`,
+                `${status || ''}%`
+            ];
+
+            // Adiciona as condições de data e hora
+            if (datade && dataate) {
+                searchQuery += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
+                queryParams.push(datade, dataate);
+            } else if (datade) {
+                searchQuery += ' AND DATE(ocorrencia.data) = DATE(?)';
+                queryParams.push(datade);
+            } else if (dataate) {
+                searchQuery += ' AND DATE(ocorrencia.data) <= DATE(?)';
+                queryParams.push(dataate);
+            }
+
+            if (horade && horaate) {
+                searchQuery += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
+                queryParams.push(horade, horaate);
+            } else if (horade) {
+                searchQuery += ' AND TIME(ocorrencia.data) = TIME(?)';
+                queryParams.push(horade);
+            } else if (horaate) {
+                searchQuery += ' AND TIME(ocorrencia.data) <= TIME(?)';
+                queryParams.push(horaate);
+            }
+
+            // Adiciona o ORDER BY e LIMIT e OFFSET
+            searchQuery += `
+            ORDER BY
+                CASE
+                    WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+                    WHEN ocorrencia.status = 'Pendente' THEN 2
+                    WHEN ocorrencia.status = 'Resolvido' THEN 3
+                    ELSE 4
+                END,
+                ocorrencia.data DESC,
+                ocorrencia.id_ocorrencia DESC
+            LIMIT 100 OFFSET ?;
         `;
+            queryParams.push(parseInt(offset, 10));
 
-        const queryParams = [
-            `${idocorrencia || ''}%`,
-            `${placaveiculo || ''}%`,
-            `${placacarreta || ''}%`,
-            `${nomecliente || ''}%`,
-            `${nomemotorista || ''}%`,
-            `${descricao || ''}%`,
-            `${status || ''}%`
-        ];
+            // Executa a consulta principal
+            const rows = await query(searchQuery, queryParams);
 
-        // Adiciona as condições de data e hora
-        if (datade && dataate) {
-            searchQuery += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
-            queryParams.push(datade, dataate);
-        } else if (datade) {
-            searchQuery += ' AND DATE(ocorrencia.data) = DATE(?)';
-            queryParams.push(datade);
-        } else if (dataate) {
-            searchQuery += ' AND DATE(ocorrencia.data) <= DATE(?)';
-            queryParams.push(dataate);
+              // Incluindo o isAdmin na resposta
+              res.json({
+                isAdmin: isAdmin,
+                ocorrencias: rows
+            });
+
+            // Geração do PDF sem LIMIT e OFFSET
+            let searchQueryPdf = `
+                SELECT
+                    ocorrencia.id_ocorrencia,
+                    ocorrencia.placa_veiculo,
+                    ocorrencia.placa_carreta,
+                    cliente.nome AS cliente_nome,
+                    ocorrencia.motorista,
+                    ocorrencia.descricao,
+                    ocorrencia.status,
+                    DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                    DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                    usuario.login_usu AS usuario_login,
+                    ocorrencia.id_usuario,
+                    ocorrencia.id_cliente
+                FROM 
+                    ocorrencia
+                INNER JOIN 
+                    usuario ON ocorrencia.id_usuario = usuario.id_usu
+                INNER JOIN 
+                    cliente ON ocorrencia.id_cliente = cliente.id_cliente
+                WHERE 
+                    ocorrencia.id_ocorrencia LIKE ? AND
+                    ocorrencia.placa_veiculo LIKE ? AND
+                    ocorrencia.placa_carreta LIKE ? AND
+                    cliente.nome LIKE ? AND
+                    ocorrencia.motorista LIKE ? AND
+                    ocorrencia.descricao LIKE ? AND
+                    ocorrencia.status LIKE ?
+            `;
+
+            // Reaplica as condições de data e hora na consulta do PDF
+            if (datade && dataate) {
+                searchQueryPdf += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
+            } else if (datade) {
+                searchQueryPdf += ' AND DATE(ocorrencia.data) = DATE(?)';
+            } else if (dataate) {
+                searchQueryPdf += ' AND DATE(ocorrencia.data) <= DATE(?)';
+            }
+
+            if (horade && horaate) {
+                searchQueryPdf += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
+            } else if (horade) {
+                searchQueryPdf += ' AND TIME(ocorrencia.data) = TIME(?)';
+            } else if (horaate) {
+                searchQueryPdf += ' AND TIME(ocorrencia.data) <= TIME(?)';
+            }
+
+            searchQueryPdf += `
+            ORDER BY
+                CASE
+                    WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+                    WHEN ocorrencia.status = 'Pendente' THEN 2
+                    WHEN ocorrencia.status = 'Resolvido' THEN 3
+                    ELSE 4
+                END,
+                ocorrencia.data DESC,
+                ocorrencia.id_ocorrencia DESC;
+            `;
+
+            // Executa a consulta do PDF
+            const rowsPdf = await query(searchQueryPdf, queryParams);
+
+            const pdfData = {
+                headers: ['ID', 'Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
+                rows: rowsPdf.map(row => [
+                    row.id_ocorrencia,
+                    row.placa_veiculo,
+                    row.placa_carreta,
+                    row.cliente_nome,
+                    row.motorista,
+                    row.descricao,
+                    row.status,
+                    row.data_ocorrencia,
+                    row.hora_ocorrencia,
+                    row.usuario_login
+                ])
+            };
+
+            generatePdf(pdfData)
+                .then(message => console.log(message))
+                .catch(err => console.error('Erro ao gerar PDF:', err));
+        } catch (err) {
+            console.error('Erro ao buscar ocorrências:', err);
+            res.status(500).json({ error: 'Erro ao buscar ocorrências' });
         }
 
-        if (horade && horaate) {
-            searchQuery += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
-            queryParams.push(horade, horaate);
-        } else if (horade) {
-            searchQuery += ' AND TIME(ocorrencia.data) = TIME(?)';
-            queryParams.push(horade);
-        } else if (horaate) {
-            searchQuery += ' AND TIME(ocorrencia.data) <= TIME(?)';
-            queryParams.push(horaate);
-        }
-
-        // Adiciona o ORDER BY e LIMIT e OFFSET
-        searchQuery += `
-        ORDER BY
-            CASE
-                WHEN ocorrencia.status = 'Não Resolvido' THEN 1
-                WHEN ocorrencia.status = 'Pendente' THEN 2
-                WHEN ocorrencia.status = 'Resolvido' THEN 3
-                ELSE 4
-            END,
-            ocorrencia.data DESC,
-            ocorrencia.id_ocorrencia DESC
-        LIMIT 100 OFFSET ?;
-    `;
-        queryParams.push(parseInt(offset, 10));
-
-        // Executa a consulta principal
-        const rows = await query(searchQuery, queryParams);
-
-        res.json(rows);
-
-        // Geração do PDF sem LIMIT e OFFSET
-        let searchQueryPdf = `
-            SELECT
-                ocorrencia.id_ocorrencia,
-                ocorrencia.placa_veiculo,
-                ocorrencia.placa_carreta,
-                cliente.nome AS cliente_nome,
-                ocorrencia.motorista,
-                ocorrencia.descricao,
-                ocorrencia.status,
-                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
-                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-                usuario.login_usu AS usuario_login,
-                ocorrencia.id_usuario,
-                ocorrencia.id_cliente
-            FROM 
-                ocorrencia
-            INNER JOIN 
-                usuario ON ocorrencia.id_usuario = usuario.id_usu
-            INNER JOIN 
-                cliente ON ocorrencia.id_cliente = cliente.id_cliente
-            WHERE 
-                ocorrencia.id_ocorrencia LIKE ? AND
-                ocorrencia.placa_veiculo LIKE ? AND
-                ocorrencia.placa_carreta LIKE ? AND
-                cliente.nome LIKE ? AND
-                ocorrencia.motorista LIKE ? AND
-                ocorrencia.descricao LIKE ? AND
-                ocorrencia.status LIKE ?
-        `;
-
-        // Reaplica as condições de data e hora na consulta do PDF
-        if (datade && dataate) {
-            searchQueryPdf += ' AND DATE(ocorrencia.data) BETWEEN DATE(?) AND DATE(?)';
-        } else if (datade) {
-            searchQueryPdf += ' AND DATE(ocorrencia.data) = DATE(?)';
-        } else if (dataate) {
-            searchQueryPdf += ' AND DATE(ocorrencia.data) <= DATE(?)';
-        }
-
-        if (horade && horaate) {
-            searchQueryPdf += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
-        } else if (horade) {
-            searchQueryPdf += ' AND TIME(ocorrencia.data) = TIME(?)';
-        } else if (horaate) {
-            searchQueryPdf += ' AND TIME(ocorrencia.data) <= TIME(?)';
-        }
-
-        searchQueryPdf += `
-        ORDER BY
-            CASE
-                WHEN ocorrencia.status = 'Não Resolvido' THEN 1
-                WHEN ocorrencia.status = 'Pendente' THEN 2
-                WHEN ocorrencia.status = 'Resolvido' THEN 3
-                ELSE 4
-            END,
-            ocorrencia.data DESC,
-            ocorrencia.id_ocorrencia DESC;
-        `;
-
-        // Executa a consulta do PDF
-        const rowsPdf = await query(searchQueryPdf, queryParams);
-
-        const pdfData = {
-            headers: ['ID', 'Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
-            rows: rowsPdf.map(row => [
-                row.id_ocorrencia,
-                row.placa_veiculo,
-                row.placa_carreta,
-                row.cliente_nome,
-                row.motorista,
-                row.descricao,
-                row.status,
-                row.data_ocorrencia,
-                row.hora_ocorrencia,
-                row.usuario_login
-            ])
-        };
-
-        generatePdf(pdfData)
-            .then(message => console.log(message))
-            .catch(err => console.error('Erro ao gerar PDF:', err));
-    } catch (err) {
-        console.error('Erro ao buscar ocorrências:', err);
-        res.status(500).json({ error: 'Erro ao buscar ocorrências' });
     }
+
+
+
 });
 app.put('/update-client/:id', asyncHandler(async (req, res) => {
     const clientId = req.params.id;

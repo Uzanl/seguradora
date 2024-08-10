@@ -6,6 +6,15 @@ const tableBody = document.getElementById('ocorrencias-table-body');
 const PdfButton = document.getElementById('export-pdf-button');
 const EditOCorrencia = document.getElementById('edit-ocorrencia');
 const LoadMoreButton = document.querySelector('#load-more');
+const EditPlacaVeiculo = document.getElementById('edit-placa-veiculo');
+const EditPlacaCarreta = document.getElementById('edit-placa-carreta')
+const EditMotorista = document.getElementById('edit-motorista');
+const EditDescricao = document.getElementById('edit-descricao')
+const EditStatus = document.getElementById('edit-status');
+const EditDataOcorrencia = document.getElementById('edit-data-ocorrencia')
+const EditHoraOcorrencia = document.getElementById('edit-hora-ocorrencia')
+const EditUsuarioLogin = document.getElementById('edit-usuario-login')
+
 
 $(document).ready(function () {
 
@@ -98,15 +107,14 @@ document.addEventListener('DOMContentLoaded', () => {
         .forEach(input => input.addEventListener('input', searchOcorrencias));
 });
 
-//let offset = 0;
+function renderOcorrencias(ocorrencias, isAdmin) {
+    const tableBody = document.querySelector('#ocorrencias-table-body'); // Certifique-se de que #ocorrencias-table-body é o ID correto
 
-function renderOcorrencias(ocorrencias) {
-    // const tableBody = document.querySelector('#table-body'); // Certifique-se de que #table-body é o ID correto
     ocorrencias.forEach(ocorrencia => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', ocorrencia.id_ocorrencia);
         row.innerHTML = `
-            <td >${ocorrencia.id_ocorrencia}</td>
+            <td>${ocorrencia.id_ocorrencia}</td>
             <td class="placa-veiculo">${ocorrencia.placa_veiculo}</td>
             <td class="placa-carreta">${ocorrencia.placa_carreta}</td>
             <td class="cliente-nome" data-id="${ocorrencia.id_cliente}">${ocorrencia.cliente_nome}</td>
@@ -117,12 +125,16 @@ function renderOcorrencias(ocorrencias) {
             <td class="hora-ocorrencia">${ocorrencia.hora_ocorrencia}</td>
             <td class="usuario-login" data-id="${ocorrencia.id_usuario}">${ocorrencia.usuario_login}</td>
             <td class="td-button">
-                <button type="button" class="edit-button" data-id="${ocorrencia.id_ocorrencia}">
-                    <img width="30" height="30" src="/images/edit.png" alt="Editar">
-                </button>
-                <button type="button" class="delete-button" data-id="${ocorrencia.id_ocorrencia}">
-                    <img width="30" height="30" src="/images/delete.png" alt="Excluir">
-                </button>
+                ${isAdmin || (ocorrencia.status !== 'Resolvido' && !isAdmin) ? `
+                    <button type="button" class="edit-button" data-id="${ocorrencia.id_ocorrencia}">
+                        <img width="30" height="30" src="/images/edit.png" alt="Editar">
+                    </button>
+                ` : ''}
+                ${isAdmin ? `
+                    <button type="button" class="delete-button" data-id="${ocorrencia.id_ocorrencia}">
+                        <img width="30" height="30" src="/images/delete.png" alt="Excluir">
+                    </button>
+                ` : ''}
             </td>
         `;
         tableBody.appendChild(row);
@@ -148,12 +160,14 @@ async function searchOcorrencias(event, loadMore = false) {
         const response = await fetch(`/search-ocorrencia?${queryParams}`, { credentials: 'same-origin' });
         if (!response.ok) throw new Error('Erro ao buscar ocorrências');
 
-        const ocorrencias = await response.json();
+        const data = await response.json();
+        const { isAdmin, ocorrencias } = data;
+
         if (loadMore) {
-            renderOcorrencias(ocorrencias); // Adiciona as novas ocorrências
+            renderOcorrencias(ocorrencias, isAdmin); // Adiciona as novas ocorrências
         } else {
             tableBody.innerHTML = ''; // Limpa a tabela existente
-            renderOcorrencias(ocorrencias); // Renderiza as novas ocorrências
+            renderOcorrencias(ocorrencias, isAdmin); // Renderiza as novas ocorrências
         }
 
         // Incrementa o offset apenas se "Carregar Mais" foi clicado
@@ -162,14 +176,12 @@ async function searchOcorrencias(event, loadMore = false) {
         }
 
         // Esconde o botão se menos de 100 resultados forem retornados
-
         if (LoadMoreButton) {
             if (ocorrencias.length < 100) {
                 LoadMoreButton.style.display = 'none';
             } else {
                 LoadMoreButton.style.display = 'block';
             }
-
         }
 
     } catch (err) {
@@ -188,7 +200,7 @@ async function fetchOcorrenciasSemFiltro() {
         const data = await response.json();
 
 
-        renderOcorrencias(data.ocorrencias);
+        renderOcorrencias(data.ocorrencias, data.isAdmin);
 
         // Incrementa o offset apenas se "Carregar Mais" foi clicado
         if (data.ocorrencias.length === 100) {
@@ -294,18 +306,40 @@ function addEventListenersToOcorrenciaButtons() {
 
 function editOcorrencia(ocorrenciaId) {
     const listItem = document.querySelector(`tr[data-id="${ocorrenciaId}"]`);
-    document.getElementById('edit-placa-veiculo').value = listItem.querySelector('.placa-veiculo').innerText;
-    document.getElementById('edit-placa-carreta').value = listItem.querySelector('.placa-carreta').innerText;
-    document.getElementById('edit-motorista').value = listItem.querySelector('.motorista').innerText;
-    document.getElementById('edit-descricao').value = listItem.querySelector('.descricao').innerText;
-    document.getElementById('edit-status').value = listItem.querySelector('.status').innerText;
+
+    if (EditPlacaVeiculo) {
+        EditPlacaVeiculo.value = listItem.querySelector('.placa-veiculo').innerText;
+    }
+
+    if (EditPlacaCarreta) {
+        EditPlacaCarreta.value = listItem.querySelector('.placa-carreta').innerText;
+    }
+
+    if (EditMotorista) {
+        EditMotorista.value = listItem.querySelector('.motorista').innerText;
+    }
+
+    if (EditDescricao) {
+        EditDescricao.value = listItem.querySelector('.descricao').innerText;
+    }
+
+    if (EditStatus) {
+        EditStatus.value = listItem.querySelector('.status').innerText;
+    }
 
     const dataOcorrencia = listItem.querySelector('.data-ocorrencia').innerText;
     const formattedDataOcorrencia = formatDateForInput(dataOcorrencia);
-    document.getElementById('edit-data-ocorrencia').value = formattedDataOcorrencia;
 
-    // Preencher o campo de hora
-    document.getElementById('edit-hora-ocorrencia').value = listItem.querySelector('.hora-ocorrencia').innerText;
+    if (EditDataOcorrencia) {
+        EditDataOcorrencia.value = formattedDataOcorrencia;
+    }
+
+    if (EditHoraOcorrencia) {
+        // Preencher o campo de hora
+        EditHoraOcorrencia.value = listItem.querySelector('.hora-ocorrencia').innerText;
+    }
+
+
 
     // Definir o data-id da div de edição
     EditSection.dataset.id = ocorrenciaId;
@@ -313,7 +347,10 @@ function editOcorrencia(ocorrenciaId) {
 
     // Preencher o select de usuário
     const usuarioId = listItem.querySelector('.usuario-login').dataset.id;
-    document.getElementById('edit-usuario-login').value = usuarioId;
+    if (EditUsuarioLogin) {
+        EditUsuarioLogin.value = usuarioId;
+    }
+
 
     // Supondo que você tem o `clientId` disponível
     const clientId = listItem.querySelector('.cliente-nome').dataset.id;
