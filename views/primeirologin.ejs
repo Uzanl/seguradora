@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Página para cadastro pesquisa e alteração dos dados de usuários.">
+    <link rel="preload" href="/css/navbar.css" as="style">
+    <link rel="preload" href="/css/primeirologin.css" as="style">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/primeirologin.css">
+    <script src="/script/usuario0.js" defer></script>
+    <title>Cadastro de Usuário</title>
+</head>
+
+<body>
+        <main>
+            <div class="cadastro-form">
+                <form class="user-form" id="user-form">
+                    <label for="user-type">Tipo de Usuário:</label>
+                    <select id="user-type" name="user-type" required>
+                        <option value="Administrador">Administrador</option>
+                    </select>
+
+                    <label for="login">Login:</label>
+                    <input type="text" class="login" name="login" oninput="validateInput(this)" maxlength="12"
+                        placeholder="Digite o login" required>
+
+                    <label for="password">Senha:</label>
+                    <div class="input-container">
+                        <input type="password" id="password" name="password" maxlength="16" placeholder="Digite a senha"
+                            required>
+                        <img class="toggle-password" src="/images/eye.webp" alt="Mostrar Senha"
+                            onclick="togglePasswordVisibility(event)">
+                    </div>
+                    <div id="password-feedback" class="feedback"></div>
+
+                    <label for="confirm-password">Confirmação da Senha:</label>
+                    <div class="input-container">
+                        <input type="password" id="confirm-password" name="confirm-password" maxlength="16"
+                            placeholder="Confirme a senha" required>
+                        <img class="toggle-password" src="/images/eye.webp" alt="Mostrar Senha"
+                            onclick="togglePasswordVisibility(event)">
+                    </div>
+                    <div id="confirm-password-feedback" class="feedback"></div>
+
+                    <button class="BtnCadastrar" type="submit">Cadastrar</button>
+                    <div id="message" class="message"></div>
+                </form>
+            </div>
+        </main>
+</body>
+
+</html>

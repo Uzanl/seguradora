@@ -266,18 +266,37 @@ app.get('/usuario', asyncHandler(async (req, res, next) => {
 }));
 
 app.get('/login', asyncHandler(async (req, res, next) => {
-    res.render('login.ejs')
+    try {
+        const query = promisify(connection.query).bind(connection);
+
+        // Verifica se existe pelo menos um usuário registrado
+        const userExistsQuery = 'SELECT EXISTS(SELECT 1 FROM usuario) AS userExists';
+        const result = await query(userExistsQuery);
+
+        // Se existir pelo menos um usuário, renderiza a página de login
+        if (result[0].userExists) {
+            res.render('login.ejs');
+        } else {
+            // Caso contrário, redireciona para a página de primeiro login
+            res.render('primeirologin.ejs');
+        }
+    } catch (err) {
+        console.error('Erro ao verificar usuários:', err);
+        next(err); // Passa o erro para o middleware de tratamento de erros
+    }
 }));
 
 app.get('/', asyncHandler(async (req, res, next) => {
     if (req.session.userId) {
         res.redirect('/ocorrencia')
     } else {
-        res.render('login.ejs')
+        res.redirect('/login')
     }
 }));
 
 app.delete('/delete-client/:id', async (req, res) => {
+
+
     const clientId = req.params.id;
 
     try {
@@ -588,8 +607,8 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
 
     if (req.session.userId) {
 
-       let isAdmin;
-       
+        let isAdmin;
+
 
         const {
             idocorrencia,
@@ -604,14 +623,14 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             horade,
             horaate,
             offset = 0,
-              // Adiciona suporte ao offset, com valor padrão 0
+            // Adiciona suporte ao offset, com valor padrão 0
         } = req.query;
 
         console.log(req.query);
 
         if (req.session.userType === "Administrador") {
-            isAdmin =true;
-       }
+            isAdmin = true;
+        }
 
         try {
             const query = promisify(connection.query).bind(connection);
@@ -697,8 +716,8 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             // Executa a consulta principal
             const rows = await query(searchQuery, queryParams);
 
-              // Incluindo o isAdmin na resposta
-              res.json({
+            // Incluindo o isAdmin na resposta
+            res.json({
                 isAdmin: isAdmin,
                 ocorrencias: rows
             });
@@ -902,6 +921,13 @@ app.post('/insert-user', async (req, res) => {
             error: 'A senha deve ter no máximo 16 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.'
         });
     }
+
+     // Verificação do tipo de usuário
+     if (userType !== 'Administrador' && userType !== 'Funcionário') {
+        console.log
+        return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
+    }
+
 
     try {
         // Conecte-se ao banco de dados e insira o usuário
