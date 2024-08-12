@@ -23,3 +23,12 @@ document.getElementById('login-form').addEventListener('submit', async (event) =
         alert('Erro ao fazer login');
     }
 });
+
+function togglePasswordVisibility(event) {
+    const eyeIcon = event.target;
+    const input = eyeIcon.previousElementSibling;
+    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+    input.setAttribute('type', type);
+    eyeIcon.src = type === 'text' ? '/images/invisible-eye.webp' : '/images/eye.webp';
+    eyeIcon.alt = type === 'text' ? 'Esconder Senha' : 'Mostrar Senha';
+}

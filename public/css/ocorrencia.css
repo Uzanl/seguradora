@@ -36,7 +36,7 @@ input:focus {
     width: 50%;
     overflow-y: scroll;
     border: 1px solid gray;
-    max-height: 88dvh;
+    max-height: 1233.470px;
 }
 
 .filtro-ocorrencia {
@@ -53,7 +53,14 @@ select {
 
 .BtnEnviar {
     padding: 10px 20px;
-    cursor: pointer;
+    border-radius: 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+}
+
+.BtnPdf{
+    border-radius: 15px;
 }
 
 .toggle-btn {
@@ -127,11 +134,13 @@ button {
     z-index: 1000;
     flex-direction: column;
     gap: 10px;
-    width: 300px; /* Ajuste conforme necessário */
+    width: 300px;
+    /* Ajuste conforme necessário */
 }
 
 #ocorrencias-table-container {
-    height: 400px; /* Ajuste conforme necessário */
+    height: 400px;
+    /* Ajuste conforme necessário */
     overflow-y: auto;
     border: 1px solid #ddd;
 }
@@ -143,7 +152,8 @@ button {
 }
 
 .loading-indicator {
-    display: none; /* Oculto por padrão */
+    display: none;
+    /* Oculto por padrão */
     text-align: center;
     padding: 10px;
 }

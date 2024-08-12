@@ -34,6 +34,7 @@
 
                 <form class="form-editor" id="ocorrencia-form" enctype="multipart/form-data"
                     aria-label="Formulário de inserção de ocorrências">
+                    <h2>Cadastrar Ocorrência</h2>
                     <label for="placa-veiculo">Placa do Veículo:</label>
                     <input type="text" id="placa-veiculo" class="placa" name="placaveiculo"
                         placeholder="Digite a placa do veículo" required>
@@ -212,6 +213,7 @@
 
                 </div>
                 <form class="form-search">
+                    <h2>Pesquisar Ocorrência e gerar PDF</h2>
                     <label for="id-ocorrencia-pesquisa">ID da ocorrência:</label>
                     <input type="text" id="id-ocorrencia-pesquisa" placeholder="Pesquise com a placa do veículo"
                         name="idocorrencia">
@@ -258,13 +260,10 @@
 
 
 
-                    <button type="button" id="export-pdf-button">
+                    <button type="button" id="export-pdf-button" class="BtnPdf">
                         <img width="30" height="30" src="/images/pdf.webp" alt="Exportar para PDF">
                     </button>
                 </form>
-
-
-
             </main>
 
 </body>

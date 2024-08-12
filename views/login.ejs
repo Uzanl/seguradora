@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,18 +11,25 @@
     <script src="/script/login.js" defer></script>
     <title>Tela de Login</title>
 </head>
+
 <body>
     <main>
-        <h2>Login</h2>
         <form class="login-form" id="login-form">
+            <h2>Login</h2>
             <label for="login">Login:</label>
             <input type="text" id="login" name="login" placeholder="Digite seu login" required>
-            
-            <label for="password">Senha:</label>
-            <input type="password" id="password" name="password" placeholder="Digite sua senha" required>
-            
+
+            <div class="input-container">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" name="password" placeholder="Digite sua senha" required>
+                <img class="toggle-password" src="/images/eye.webp" alt="Mostrar Senha"
+                    onclick="togglePasswordVisibility(event)">
+            </div>
+
+
             <button type="submit">Entrar</button>
         </form>
     </main>
 </body>
+
 </html>

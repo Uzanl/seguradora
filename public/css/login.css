@@ -18,6 +18,13 @@ main {
     flex-direction: column;
     gap: 10px;
     width: 25%;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+h2 {
+    text-align: center;
 }
 
 input,
@@ -29,5 +36,36 @@ select {
 
 button {
     padding: 10px 20px;
+    border-radius: 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
     cursor: pointer;
+}
+
+.input-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-container input {
+    width: calc(100% - 20px);
+}
+
+/* Remove o ícone de visibilidade de senha padrão */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
+.input-container .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 55%;
+
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
 }

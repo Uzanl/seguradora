@@ -1,9 +1,11 @@
 const path = require('path');
-//const fs = require('fs');
+const fs = require('fs');
 const { jsPDF } = require('jspdf');
 require('jspdf-autotable');
+const { promisify } = require('util');
 
-const generatePdf = (pdfData) => {
+// Função para gerar um PDF com base no ID do usuário
+const generatePdf = (pdfData, userId) => {
     return new Promise((resolve, reject) => {
         try {
             // Cria uma nova instância de jsPDF com orientação paisagem
@@ -17,11 +19,12 @@ const generatePdf = (pdfData) => {
             });
 
             // Define o caminho para salvar o PDF
-            const filePath = path.join(__dirname, 'pdfs', 'ocorrencias.pdf');
+            const fileName = `ocorrencias_${userId}.pdf`;
+            const filePath = path.join(__dirname, 'pdfs', fileName);
 
             // Salva o PDF
             doc.save(filePath, { returnPromise: true })
-                .then(() => resolve('PDF gerado com sucesso.'))
+                .then(() => resolve(filePath))
                 .catch(err => reject('Erro ao gerar o PDF: ' + err.message));
         } catch (err) {
             reject('Erro ao gerar o PDF: ' + err.message);

@@ -77,6 +77,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
         try {
             const userLoggedIn = true;
             const query = promisify(connection.query).bind(connection);
+            const userid =  req.session.userId ;
 
             // Obtém o offset da query string, se não houver, define como 0
             const offset = parseInt(req.query.offset) || 0;
@@ -190,7 +191,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 ])
             };
 
-            generatePdf(pdfData)
+            generatePdf(pdfData,userid)
                 .then(message => console.log(message))
                 .catch(err => console.error('Erro ao gerar PDF:', err));
 
@@ -296,310 +297,330 @@ app.get('/', asyncHandler(async (req, res, next) => {
 
 app.delete('/delete-client/:id', async (req, res) => {
 
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const clientId = req.params.id;
 
-    const clientId = req.params.id;
+        try {
+            // Conectar ao banco de dados e executar a consulta
+            const query = promisify(connection.query).bind(connection);
+            const deleteQuery = 'DELETE FROM cliente WHERE id_cliente = ?';
+            const result = await query(deleteQuery, [clientId]);
 
-    try {
-        // Conectar ao banco de dados e executar a consulta
-        const query = promisify(connection.query).bind(connection);
-        const deleteQuery = 'DELETE FROM cliente WHERE id_cliente = ?';
-        const result = await query(deleteQuery, [clientId]);
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Cliente não encontrado.' });
+            }
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Cliente não encontrado.' });
+            res.status(200).json({ message: 'Cliente excluído com sucesso.' });
+        } catch (err) {
+            console.error('Erro ao excluir cliente:', err);
+            res.status(500).json({ error: 'Erro ao excluir cliente.' });
         }
-
-        res.status(200).json({ message: 'Cliente excluído com sucesso.' });
-    } catch (err) {
-        console.error('Erro ao excluir cliente:', err);
-        res.status(500).json({ error: 'Erro ao excluir cliente.' });
     }
 });
 
 app.delete('/delete-ocorrencia/:id', async (req, res) => {
-    const clientId = req.params.id;
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const ocorrenciaId = req.params.id;
 
-    try {
-        // Conectar ao banco de dados e executar a consulta
-        const query = promisify(connection.query).bind(connection);
-        const deleteQuery = 'DELETE FROM ocorrencia WHERE id_ocorrencia = ?';
-        const result = await query(deleteQuery, [clientId]);
+        try {
+            const query = promisify(connection.query).bind(connection);
+            const deleteQuery = 'DELETE FROM ocorrencia WHERE id_ocorrencia = ?';
+            const result = await query(deleteQuery, [ocorrenciaId]);
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+            }
+
+            // Enviar a exclusão da ocorrência para todos os clientes conectados
+            broadcastDeleteOcorrencia(ocorrenciaId);
+
+            res.status(200).json({ message: 'Ocorrência excluída com sucesso.' });
+        } catch (err) {
+            console.error('Erro ao excluir ocorrência:', err);
+            res.status(500).json({ error: 'Erro ao excluir ocorrência.' });
         }
-
-        res.status(200).json({ message: 'Ocorrência excluída com sucesso.' });
-    } catch (err) {
-        console.error('Erro ao excluir ocorrência:', err);
-        res.status(500).json({ error: 'Erro ao excluir ocorrência.' });
     }
 });
 
 app.put('/update-ocorrencia/:id', upload.none(), asyncHandler(async (req, res) => {
-    const ocorrenciaId = req.params.id;
-    const {
-        placaveiculoedit,
-        placacarretaedit,
-        idclienteedit,
-        motoristaedit,
-        descricaoedit,
-        statusedit,
-        dataocorrenciaedit, // Data e Hora combinados
-        horaocorrenciaedit, // Hora separada
-        idusuarioedit
-    } = req.body;
 
-    // Supomos que o ID do usuário é enviado no corpo ou nos headers
-    const userId = req.body.userId; // Ajuste conforme a sua implementação
+    if (req.session.userId) {
+        const ocorrenciaId = req.params.id;
+        const {
+            placaveiculoedit,
+            placacarretaedit,
+            idclienteedit,
+            motoristaedit,
+            descricaoedit,
+            statusedit,
+            dataocorrenciaedit, // Data e Hora combinados
+            horaocorrenciaedit, // Hora separada
+            idusuarioedit
+        } = req.body;
+
+        // Supomos que o ID do usuário é enviado no corpo ou nos headers
+        const userId = req.body.userId; // Ajuste conforme a sua implementação
 
 
 
-    // Verifica se o usuário é admin
-    const isAdmin = req.session.userType === "Administrador" // Função fictícia para verificar se o usuário é admin
+        // Verifica se o usuário é admin
+        const isAdmin = req.session.userType === "Administrador" // Função fictícia para verificar se o usuário é admin
 
-    // Verifica quais campos são obrigatórios com base no tipo de usuário
-    const missingFields = [];
-    if (isAdmin) {
-        if (!placaveiculoedit) missingFields.push('Placa do Veículo');
-        if (!placacarretaedit) missingFields.push('Placa da Carreta');
-        if (!idclienteedit) missingFields.push('ID do Cliente');
-        if (!motoristaedit) missingFields.push('Motorista');
-        if (!descricaoedit) missingFields.push('Descrição');
-        if (!statusedit) missingFields.push('Status');
-        if (!dataocorrenciaedit) missingFields.push('Data'); // Data e Hora combinados
-        if (!horaocorrenciaedit) missingFields.push('Hora'); // Hora separada
-        if (!idusuarioedit) missingFields.push('ID do Usuário');
-    } else {
-        if (!statusedit) missingFields.push('Status');
-    }
-
-    if (missingFields.length > 0) {
-        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
-        return res.status(400).json({ error: errorMessage });
-    }
-
-    try {
-        const query = promisify(connection.query).bind(connection);
-
-        // Combina a data e a hora no campo data
-        const dataHora = `${dataocorrenciaedit} ${horaocorrenciaedit}`;
-
-        // Atualiza a consulta SQL com base no tipo de usuário
-        let updateQuery;
-        let queryParams;
-
+        // Verifica quais campos são obrigatórios com base no tipo de usuário
+        const missingFields = [];
         if (isAdmin) {
-            updateQuery = `
-                UPDATE ocorrencia
-                SET placa_veiculo = ?, placa_carreta = ?, id_cliente = ?, motorista = ?, descricao = ?, status = ?, data = ?, id_usuario = ?
-                WHERE id_ocorrencia = ?
-            `;
-            queryParams = [
-                placaveiculoedit,
-                placacarretaedit,
-                idclienteedit,
-                motoristaedit,
-                descricaoedit,
-                statusedit,
-                dataHora, // Data e Hora combinados
-                idusuarioedit,
-                ocorrenciaId
-            ];
+            if (!placaveiculoedit) missingFields.push('Placa do Veículo');
+            if (!placacarretaedit) missingFields.push('Placa da Carreta');
+            if (!idclienteedit) missingFields.push('ID do Cliente');
+            if (!motoristaedit) missingFields.push('Motorista');
+            if (!descricaoedit) missingFields.push('Descrição');
+            if (!statusedit) missingFields.push('Status');
+            if (!dataocorrenciaedit) missingFields.push('Data'); // Data e Hora combinados
+            if (!horaocorrenciaedit) missingFields.push('Hora'); // Hora separada
+            if (!idusuarioedit) missingFields.push('ID do Usuário');
         } else {
-            updateQuery = `
-                UPDATE ocorrencia
-                SET status = ?
-                WHERE id_ocorrencia = ?
-            `;
-            queryParams = [statusedit, ocorrenciaId];
+            if (!statusedit) missingFields.push('Status');
         }
 
-        const result = await query(updateQuery, queryParams);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+        if (missingFields.length > 0) {
+            const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+            return res.status(400).json({ error: errorMessage });
         }
 
-        // Se a atualização foi bem-sucedida, enviar a ocorrência atualizada via WebSocket
-        const updatedOcorrencia = {
-            id: ocorrenciaId,
-            placa_veiculo: placaveiculoedit,
-            placa_carreta: placacarretaedit,
-            id_cliente: idclienteedit,
-            motorista: motoristaedit,
-            descricao: descricaoedit,
-            status: statusedit,
-            data: dataHora,
-            id_usuario: idusuarioedit
-        };
-        broadcastUpdatedOcorrencia(updatedOcorrencia);
+        try {
+            const query = promisify(connection.query).bind(connection);
 
-        res.status(200).json({ message: 'Ocorrência atualizada com sucesso.' });
-    } catch (err) {
-        console.error('Erro ao atualizar ocorrência:', err);
-        res.status(500).json({ error: 'Erro ao atualizar ocorrência.' });
+            // Combina a data e a hora no campo data
+            const dataHora = `${dataocorrenciaedit} ${horaocorrenciaedit}`;
+
+            // Atualiza a consulta SQL com base no tipo de usuário
+            let updateQuery;
+            let queryParams;
+
+            if (isAdmin) {
+                updateQuery = `
+                    UPDATE ocorrencia
+                    SET placa_veiculo = ?, placa_carreta = ?, id_cliente = ?, motorista = ?, descricao = ?, status = ?, data = ?, id_usuario = ?
+                    WHERE id_ocorrencia = ?
+                `;
+                queryParams = [
+                    placaveiculoedit,
+                    placacarretaedit,
+                    idclienteedit,
+                    motoristaedit,
+                    descricaoedit,
+                    statusedit,
+                    dataHora, // Data e Hora combinados
+                    idusuarioedit,
+                    ocorrenciaId
+                ];
+            } else {
+                updateQuery = `
+                    UPDATE ocorrencia
+                    SET status = ?
+                    WHERE id_ocorrencia = ?
+                `;
+                queryParams = [statusedit, ocorrenciaId];
+            }
+
+            const result = await query(updateQuery, queryParams);
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+            }
+
+            // Se a atualização foi bem-sucedida, enviar a ocorrência atualizada via WebSocket
+            const updatedOcorrencia = {
+                id: ocorrenciaId,
+                placa_veiculo: placaveiculoedit,
+                placa_carreta: placacarretaedit,
+                id_cliente: idclienteedit,
+                motorista: motoristaedit,
+                descricao: descricaoedit,
+                status: statusedit,
+                data: dataHora,
+                id_usuario: idusuarioedit
+            };
+            broadcastUpdatedOcorrencia(updatedOcorrencia);
+
+            res.status(200).json({ message: 'Ocorrência atualizada com sucesso.' });
+        } catch (err) {
+            console.error('Erro ao atualizar ocorrência:', err);
+            res.status(500).json({ error: 'Erro ao atualizar ocorrência.' });
+        }
     }
 }));
 
 app.post('/insert-client', async (req, res) => {
-    const { nome, cnpj } = req.body;
 
-    // Verificação dos campos obrigatórios
-    const missingFields = [];
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const { nome, cnpj } = req.body;
 
-    if (!nome) missingFields.push('Nome');
-    if (!cnpj) missingFields.push('CNPJ');
+        // Verificação dos campos obrigatórios
+        const missingFields = [];
 
-    if (missingFields.length > 0) {
-        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
-        return res.status(400).json({ error: errorMessage });
-    }
+        if (!nome) missingFields.push('Nome');
+        if (!cnpj) missingFields.push('CNPJ');
 
-    // Limpeza e validação do CNPJ
-    const cleanedCNPJ = cnpj.replace(/\D/g, '');
+        if (missingFields.length > 0) {
+            const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+            return res.status(400).json({ error: errorMessage });
+        }
 
-    if (!/^\d{14}$/.test(cleanedCNPJ)) {
-        return res.status(400).json({ error: 'CNPJ deve conter 14 dígitos numéricos.' });
-    }
+        // Limpeza e validação do CNPJ
+        const cleanedCNPJ = cnpj.replace(/\D/g, '');
 
-    // Limpeza e validação do nome
-    const namePattern = /^[A-Za-z0-9\sçÇáàãâéèêíìîóòõôú'-]+$/;
-    if (!namePattern.test(nome)) {
-        return res.status(400).json({ error: 'Nome do cliente contém caracteres inválidos. Apenas letras, espaços e alguns caracteres especiais são permitidos.' });
-    }
+        if (!/^\d{14}$/.test(cleanedCNPJ)) {
+            return res.status(400).json({ error: 'CNPJ deve conter 14 dígitos numéricos.' });
+        }
 
-    try {
-        // Conecte-se ao banco de dados e insira o cliente (exemplo simplificado)
-        const query = promisify(connection.query).bind(connection);
-        const insertQuery = 'INSERT INTO cliente (nome, cnpj) VALUES (?, ?)';
-        await query(insertQuery, [nome, cleanedCNPJ]);
+        // Limpeza e validação do nome
+        const namePattern = /^[A-Za-z0-9\sçÇáàãâéèêíìîóòõôú'-]+$/;
+        if (!namePattern.test(nome)) {
+            return res.status(400).json({ error: 'Nome do cliente contém caracteres inválidos. Apenas letras, espaços e alguns caracteres especiais são permitidos.' });
+        }
 
-        res.status(200).json({ message: 'Cliente cadastrado com sucesso.' });
-    } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-            // Trata o erro de entrada duplicada
-            return res.status(400).json({ error: 'CNPJ já cadastrado no sistema.' });
-        } else {
-            console.error('Erro ao cadastrar cliente:', err);
-            res.status(500).json({ error: 'Erro ao cadastrar cliente.' });
+        try {
+            // Conecte-se ao banco de dados e insira o cliente (exemplo simplificado)
+            const query = promisify(connection.query).bind(connection);
+            const insertQuery = 'INSERT INTO cliente (nome, cnpj) VALUES (?, ?)';
+            await query(insertQuery, [nome, cleanedCNPJ]);
+
+            res.status(200).json({ message: 'Cliente cadastrado com sucesso.' });
+        } catch (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                // Trata o erro de entrada duplicada
+                return res.status(400).json({ error: 'CNPJ já cadastrado no sistema.' });
+            } else {
+                console.error('Erro ao cadastrar cliente:', err);
+                res.status(500).json({ error: 'Erro ao cadastrar cliente.' });
+            }
         }
     }
 });
 
 app.post('/insert-ocorrencia', upload.none(), async (req, res) => {
-    const { placaveiculo, placacarreta, idcliente, nomemotorista, descricao, status } = req.body;
 
-    // Verificação dos campos obrigatórios
-    const missingFields = [];
+    if (req.session.userId) {
+        const { placaveiculo, placacarreta, idcliente, nomemotorista, descricao, status } = req.body;
 
-    if (!placaveiculo) missingFields.push('Placa do Veículo');
-    if (!placacarreta) missingFields.push('Placa da Carreta');
-    if (!idcliente) missingFields.push('ID do Cliente');
-    if (!nomemotorista) missingFields.push('Nome do Motorista');
-    if (!descricao) missingFields.push('Descrição');
-    if (!status) missingFields.push('Status');
+        // Verificação dos campos obrigatórios
+        const missingFields = [];
 
-    if (missingFields.length > 0) {
-        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
-        console.log(errorMessage);
-        return res.status(400).json({ error: errorMessage });
+        if (!placaveiculo) missingFields.push('Placa do Veículo');
+        if (!placacarreta) missingFields.push('Placa da Carreta');
+        if (!idcliente) missingFields.push('ID do Cliente');
+        if (!nomemotorista) missingFields.push('Nome do Motorista');
+        if (!descricao) missingFields.push('Descrição');
+        if (!status) missingFields.push('Status');
+
+        if (missingFields.length > 0) {
+            const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+            console.log(errorMessage);
+            return res.status(400).json({ error: errorMessage });
+        }
+
+        // Validação das placas (exatamente 7 caracteres, apenas letras e números)
+        const placaRegex = /^[A-Za-z0-9]{7}$/;
+
+        // Validação da Placa do Veículo
+        if (!placaRegex.test(placaveiculo)) {
+            console.log("placaVeiculo");
+            return res.status(400).json({ error: 'Placa do Veículo inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
+        }
+
+        // Validação da Placa da Carreta
+        if (!placaRegex.test(placacarreta)) {
+            console.log("placaCarreta");
+            return res.status(400).json({ error: 'Placa da Carreta inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
+        }
+
+        // Validação do nome do motorista
+        if (nomemotorista.length > 50) {
+            console.log("motorista")
+            return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
+        }
+
+        const idUsuario = req.session.userId; // Temporariamente considerando o id_usuario como 1
+
+        try {
+            // Conecte-se ao banco de dados e insira a ocorrência
+            const query = promisify(connection.query).bind(connection);
+            const insertQuery = 'INSERT INTO ocorrencia (id_usuario, id_cliente, status, data, placa_veiculo, placa_carreta, motorista, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+
+            // Obter a data e hora atuais no horário de Brasília
+            const dataHoraAtual = new Date();
+            const offset = -3 * 60; // Horário de Brasília (GMT-3)
+            const localDate = new Date(dataHoraAtual.getTime() + (offset * 60000));
+
+            // Formatar a data e hora para YYYY-MM-DD HH:MM
+            const formattedDataHora = localDate.toISOString().slice(0, 16).replace('T', ' ');
+
+            const result = await query(insertQuery, [idUsuario, idcliente, status, formattedDataHora, placaveiculo, placacarreta, nomemotorista, descricao]);
+
+            // Obter a ocorrência recém-inserida para enviar via WebSocket
+            const ocorrenciaId = result.insertId;
+            const ocorrenciaQuery = 'SELECT * FROM ocorrencia WHERE id_ocorrencia = ?';
+            const [newOcorrencia] = await query(ocorrenciaQuery, [ocorrenciaId]);
+
+            // Enviar a nova ocorrência a todos os clientes conectados
+            broadcastNewOcorrencia(newOcorrencia);
+
+            res.status(200).json({ message: 'Ocorrência cadastrada com sucesso.' });
+        } catch (err) {
+            console.error('Erro ao cadastrar ocorrência:', err);
+            res.status(500).json({ error: `Erro ao cadastrar ocorrência: ${err.code} - ${err.sqlMessage}` });
+        }
     }
-
-    // Validação das placas (exatamente 7 caracteres, apenas letras e números)
-    const placaRegex = /^[A-Za-z0-9]{7}$/;
-
-    // Validação da Placa do Veículo
-    if (!placaRegex.test(placaveiculo)) {
-        console.log("placaVeiculo");
-        return res.status(400).json({ error: 'Placa do Veículo inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
-    }
-
-    // Validação da Placa da Carreta
-    if (!placaRegex.test(placacarreta)) {
-        console.log("placaCarreta");
-        return res.status(400).json({ error: 'Placa da Carreta inválida. A placa deve conter exatamente 7 caracteres, apenas letras e números.' });
-    }
-
-    // Validação do nome do motorista
-    if (nomemotorista.length > 50) {
-        console.log("motorista")
-        return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
-    }
-
-    const idUsuario = 3; // Temporariamente considerando o id_usuario como 1
-
-    try {
-        // Conecte-se ao banco de dados e insira a ocorrência
-        const query = promisify(connection.query).bind(connection);
-        const insertQuery = 'INSERT INTO ocorrencia (id_usuario, id_cliente, status, data, placa_veiculo, placa_carreta, motorista, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-
-        // Obter a data e hora atuais no horário de Brasília
-        const dataHoraAtual = new Date();
-        const offset = -3 * 60; // Horário de Brasília (GMT-3)
-        const localDate = new Date(dataHoraAtual.getTime() + (offset * 60000));
-
-        // Formatar a data e hora para YYYY-MM-DD HH:MM
-        const formattedDataHora = localDate.toISOString().slice(0, 16).replace('T', ' ');
-
-        const result = await query(insertQuery, [idUsuario, idcliente, status, formattedDataHora, placaveiculo, placacarreta, nomemotorista, descricao]);
-
-        // Obter a ocorrência recém-inserida para enviar via WebSocket
-        const ocorrenciaId = result.insertId;
-        const ocorrenciaQuery = 'SELECT * FROM ocorrencia WHERE id_ocorrencia = ?';
-        const [newOcorrencia] = await query(ocorrenciaQuery, [ocorrenciaId]);
-
-        // Enviar a nova ocorrência a todos os clientes conectados
-        broadcastNewOcorrencia(newOcorrencia);
-
-        res.status(200).json({ message: 'Ocorrência cadastrada com sucesso.' });
-    } catch (err) {
-        console.error('Erro ao cadastrar ocorrência:', err);
-        res.status(500).json({ error: `Erro ao cadastrar ocorrência: ${err.code} - ${err.sqlMessage}` });
-    }
-
-
 });
 
 app.get('/search-client', async (req, res) => {
-    const { nome, cnpj } = req.query;
 
-    try {
-        const query = promisify(connection.query).bind(connection);
-        const searchQuery = `
-            SELECT id_cliente, nome, cnpj 
-            FROM cliente 
-            WHERE nome LIKE ? AND cnpj LIKE ?
-            ORDER BY id_cliente DESC
-            LIMIT 50
-        `;
-        const clients = await query(searchQuery, [`${nome}%`, `${cnpj}%`]);
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const { nome, cnpj } = req.query;
 
-        res.json(clients);
-    } catch (err) {
-        console.error('Erro ao buscar clientes:', err);
-        res.status(500).json({ error: 'Erro ao buscar clientes.' });
+        try {
+            const query = promisify(connection.query).bind(connection);
+            const searchQuery = `
+                SELECT id_cliente, nome, cnpj 
+                FROM cliente 
+                WHERE nome LIKE ? AND cnpj LIKE ?
+                ORDER BY id_cliente DESC
+                LIMIT 50
+            `;
+            const clients = await query(searchQuery, [`${nome}%`, `${cnpj}%`]);
+
+            res.json(clients);
+        } catch (err) {
+            console.error('Erro ao buscar clientes:', err);
+            res.status(500).json({ error: 'Erro ao buscar clientes.' });
+        }
     }
+
+
 });
 
 app.get('/search-user', async (req, res) => {
-    const { login, tipo } = req.query;
 
-    try {
-        const query = promisify(connection.query).bind(connection);
-        const searchQuery = `
-            SELECT id_usu, login_usu, tipo, senha_usu
-            FROM usuario 
-            WHERE login_usu LIKE ? AND tipo LIKE ?
-            ORDER BY id_usu DESC
-            LIMIT 50
-        `;
-        const users = await query(searchQuery, [`${login}%`, `${tipo}%`]);
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const { login, tipo } = req.query;
 
-        res.json(users);
-    } catch (err) {
-        console.error('Erro ao buscar usuários:', err);
-        res.status(500).json({ error: 'Erro ao buscar usuários.' });
+        try {
+            const query = promisify(connection.query).bind(connection);
+            const searchQuery = `
+                SELECT id_usu, login_usu, tipo, senha_usu
+                FROM usuario 
+                WHERE login_usu LIKE ? AND tipo LIKE ?
+                ORDER BY id_usu DESC
+                LIMIT 50
+            `;
+            const users = await query(searchQuery, [`${login}%`, `${tipo}%`]);
+
+            res.json(users);
+        } catch (err) {
+            console.error('Erro ao buscar usuários:', err);
+            res.status(500).json({ error: 'Erro ao buscar usuários.' });
+        }
     }
 });
 
@@ -608,6 +629,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
     if (req.session.userId) {
 
         let isAdmin;
+        const userId = req.session.userId;
 
 
         const {
@@ -801,7 +823,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
                 ])
             };
 
-            generatePdf(pdfData)
+            generatePdf(pdfData, userId)
                 .then(message => console.log(message))
                 .catch(err => console.error('Erro ao gerar PDF:', err));
         } catch (err) {
@@ -810,190 +832,208 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
         }
 
     }
-
-
-
 });
+
 app.put('/update-client/:id', asyncHandler(async (req, res) => {
-    const clientId = req.params.id;
-    const { nomeedit, cnpjedit } = req.body;
 
-    // Limpeza e validação do CNPJ
-    const cleanedCNPJ = cnpjedit.replace(/\D/g, '');
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const clientId = req.params.id;
+        const { nomeedit, cnpjedit } = req.body;
 
-    if (!/^\d{14}$/.test(cleanedCNPJ)) {
-        return res.status(400).json({ error: 'CNPJ deve conter 14 dígitos numéricos.' });
-    }
+        // Limpeza e validação do CNPJ
+        const cleanedCNPJ = cnpjedit.replace(/\D/g, '');
 
-    // Limpeza e validação do nome
-    const namePattern = /^[A-Za-z\s'-]+$/;
-    if (!namePattern.test(nomeedit)) {
-        return res.status(400).json({ error: 'Nome do cliente contém caracteres inválidos. Apenas letras, espaços e alguns caracteres especiais são permitidos.' });
-    }
-
-    try {
-        const query = promisify(connection.query).bind(connection);
-        const updateQuery = 'UPDATE cliente SET nome = ?, cnpj = ? WHERE id_cliente = ?';
-        const result = await query(updateQuery, [nomeedit, cleanedCNPJ, clientId]);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Cliente não encontrado.' });
+        if (!/^\d{14}$/.test(cleanedCNPJ)) {
+            return res.status(400).json({ error: 'CNPJ deve conter 14 dígitos numéricos.' });
         }
 
-        res.status(200).json({ message: 'Cliente atualizado com sucesso.' });
-    } catch (err) {
-        console.error('Erro ao atualizar cliente:', err);
-        res.status(500).json({ error: 'Erro ao atualizar cliente.' });
+        // Limpeza e validação do nome
+        const namePattern = /^[A-Za-z\s'-]+$/;
+        if (!namePattern.test(nomeedit)) {
+            return res.status(400).json({ error: 'Nome do cliente contém caracteres inválidos. Apenas letras, espaços e alguns caracteres especiais são permitidos.' });
+        }
+
+        try {
+            const query = promisify(connection.query).bind(connection);
+            const updateQuery = 'UPDATE cliente SET nome = ?, cnpj = ? WHERE id_cliente = ?';
+            const result = await query(updateQuery, [nomeedit, cleanedCNPJ, clientId]);
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Cliente não encontrado.' });
+            }
+
+            res.status(200).json({ message: 'Cliente atualizado com sucesso.' });
+        } catch (err) {
+            console.error('Erro ao atualizar cliente:', err);
+            res.status(500).json({ error: 'Erro ao atualizar cliente.' });
+        }
     }
 }));
 
 app.put('/update-user/:id', asyncHandler(async (req, res) => {
-    const userId = req.params.id;
-    const { loginedit, senhaedit, confirmarsenhaedit, tipoedit } = req.body;
 
-    // Verificação dos campos obrigatórios
-    const missingFields = [];
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const userId = req.params.id;
+        const { loginedit, senhaedit, confirmarsenhaedit, tipoedit } = req.body;
 
-    if (!loginedit) missingFields.push('Login');
-    if (!senhaedit) missingFields.push('Senha');
-    if (!confirmarsenhaedit) missingFields.push('Confirmar Senha');
-    if (!tipoedit) missingFields.push('Tipo de Usuário');
+        // Verificação dos campos obrigatórios
+        const missingFields = [];
 
-    if (missingFields.length > 0) {
-        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
-        return res.status(400).json({ error: errorMessage });
-    }
+        if (!loginedit) missingFields.push('Login');
+        if (!senhaedit) missingFields.push('Senha');
+        if (!confirmarsenhaedit) missingFields.push('Confirmar Senha');
+        if (!tipoedit) missingFields.push('Tipo de Usuário');
 
-    // Validação da senha
-    if (senhaedit !== confirmarsenhaedit) {
-        return res.status(400).json({ error: 'Senhas não coincidem.' });
-    }
-
-    // Validação do tipo de usuário
-    const validUserTypes = ['Administrador', 'Funcionário'];
-    if (!validUserTypes.includes(tipoedit)) {
-        return res.status(400).json({ error: 'Tipo de usuário inválido.' });
-    }
-
-    try {
-        const query = promisify(connection.query).bind(connection);
-        const updateQuery = `
-            UPDATE usuario 
-            SET login_usu = ?, senha_usu = ?, tipo = ? 
-            WHERE id_usu = ?
-        `;
-        const result = await query(updateQuery, [loginedit, senhaedit, tipoedit, userId]);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        if (missingFields.length > 0) {
+            const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+            return res.status(400).json({ error: errorMessage });
         }
 
-        res.status(200).json({ message: 'Usuário atualizado com sucesso.' });
-    } catch (err) {
-        console.error('Erro ao atualizar usuário:', err);
-        res.status(500).json({ error: 'Erro ao atualizar usuário.' });
+        // Validação da senha
+        if (senhaedit !== confirmarsenhaedit) {
+            return res.status(400).json({ error: 'Senhas não coincidem.' });
+        }
+
+        // Validação do tipo de usuário
+        const validUserTypes = ['Administrador', 'Funcionário'];
+        if (!validUserTypes.includes(tipoedit)) {
+            return res.status(400).json({ error: 'Tipo de usuário inválido.' });
+        }
+
+        try {
+            const query = promisify(connection.query).bind(connection);
+            const updateQuery = `
+                UPDATE usuario 
+                SET login_usu = ?, senha_usu = ?, tipo = ? 
+                WHERE id_usu = ?
+            `;
+            const result = await query(updateQuery, [loginedit, senhaedit, tipoedit, userId]);
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Usuário não encontrado.' });
+            }
+
+            res.status(200).json({ message: 'Usuário atualizado com sucesso.' });
+        } catch (err) {
+            console.error('Erro ao atualizar usuário:', err);
+            res.status(500).json({ error: 'Erro ao atualizar usuário.' });
+        }
     }
 }));
 
 app.post('/insert-user', async (req, res) => {
-    const { login, password, userType } = req.body;
 
-    // Verificação dos campos obrigatórios
-    const missingFields = [];
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const { login, password, userType } = req.body;
 
-    if (!login) missingFields.push('Login');
-    if (!password) missingFields.push('Senha');
-    if (!userType) missingFields.push('Tipo de Usuário');
+        // Verificação dos campos obrigatórios
+        const missingFields = [];
 
-    if (missingFields.length > 0) {
-        const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
-        return res.status(400).json({ error: errorMessage });
-    }
+        if (!login) missingFields.push('Login');
+        if (!password) missingFields.push('Senha');
+        if (!userType) missingFields.push('Tipo de Usuário');
 
-    // Validação do login
-    if (!/^[A-Za-z]{1,12}$/.test(login)) {
-        return res.status(400).json({ error: 'Login deve ter no máximo 12 letras e conter apenas letras.' });
-    }
+        if (missingFields.length > 0) {
+            const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+            return res.status(400).json({ error: errorMessage });
+        }
 
-    // Validação da senha
-    if (password.length > 16 || !/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/.test(password)) {
-        return res.status(400).json({
-            error: 'A senha deve ter no máximo 16 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.'
-        });
-    }
+        // Validação do login
+        if (!/^[A-Za-z]{1,12}$/.test(login)) {
+            return res.status(400).json({ error: 'Login deve ter no máximo 12 letras e conter apenas letras.' });
+        }
 
-     // Verificação do tipo de usuário
-     if (userType !== 'Administrador' && userType !== 'Funcionário') {
-        console.log
-        return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
-    }
+        // Validação da senha
+        if (password.length > 16 || !/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/.test(password)) {
+            return res.status(400).json({
+                error: 'A senha deve ter no máximo 16 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.'
+            });
+        }
+
+        // Verificação do tipo de usuário
+        if (userType !== 'Administrador' && userType !== 'Funcionário') {
+            console.log
+            return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
+        }
 
 
-    try {
-        // Conecte-se ao banco de dados e insira o usuário
-        const query = promisify(connection.query).bind(connection);
-        const insertQuery = 'INSERT INTO usuario (login_usu, senha_usu, tipo) VALUES (?, ?, ?)';
-        await query(insertQuery, [login, password, userType]);
+        try {
+            // Conecte-se ao banco de dados e insira o usuário
+            const query = promisify(connection.query).bind(connection);
+            const insertQuery = 'INSERT INTO usuario (login_usu, senha_usu, tipo) VALUES (?, ?, ?)';
+            await query(insertQuery, [login, password, userType]);
 
-        res.status(200).json({ message: 'Usuário cadastrado com sucesso.' });
-    } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-            // Trata o erro de entrada duplicada
-            return res.status(400).json({ error: 'Login já cadastrado no sistema.' });
-        } else {
-            console.error('Erro ao cadastrar usuário:', err);
-            res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
+            res.status(200).json({ message: 'Usuário cadastrado com sucesso.' });
+        } catch (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                // Trata o erro de entrada duplicada
+                return res.status(400).json({ error: 'Login já cadastrado no sistema.' });
+            } else {
+                console.error('Erro ao cadastrar usuário:', err);
+                res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
+            }
         }
     }
+
+
 });
 
 app.delete('/delete-user/:id', async (req, res) => {
-    const userId = req.params.id;
 
-    try {
-        // Conectar ao banco de dados e executar a consulta
-        const query = promisify(connection.query).bind(connection);
-        const deleteQuery = 'DELETE FROM usuario WHERE id_usu = ?';
-        const result = await query(deleteQuery, [userId]);
+    if (req.session.userId && req.session.userType === "Administrador") {
+        const userId = req.params.id;
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        try {
+            // Conectar ao banco de dados e executar a consulta
+            const query = promisify(connection.query).bind(connection);
+            const deleteQuery = 'DELETE FROM usuario WHERE id_usu = ?';
+            const result = await query(deleteQuery, [userId]);
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Usuário não encontrado.' });
+            }
+
+            res.status(200).json({ message: 'Usuário excluído com sucesso.' });
+        } catch (err) {
+            console.error('Erro ao excluir usuário:', err);
+            res.status(500).json({ error: 'Erro ao excluir usuário.' });
         }
-
-        res.status(200).json({ message: 'Usuário excluído com sucesso.' });
-    } catch (err) {
-        console.error('Erro ao excluir usuário:', err);
-        res.status(500).json({ error: 'Erro ao excluir usuário.' });
     }
 });
 
+// Rota para download do PDF
 app.get('/download-pdf', (req, res) => {
-    const pdfPath = path.join(__dirname, 'pdfs', 'ocorrencias.pdf');
+    if (req.session.userId) {
+        const userId = req.session.userId;
+        const fileName = `ocorrencias_${userId}.pdf`;
+        const pdfPath = path.join(__dirname, 'pdfs', fileName);
 
-    // Verifique se o arquivo existe e se está pronto
-    fs.access(pdfPath, fs.constants.F_OK, (err) => {
-        if (err) {
-            console.error('Arquivo não encontrado:', err);
-            return res.status(404).json({ error: 'Arquivo não encontrado' });
-        }
-
-        // Faça o download do arquivo
-        res.download(pdfPath, 'ocorrencias.pdf', (err) => {
+        // Verifique se o arquivo existe e faça o download
+        fs.access(pdfPath, fs.constants.F_OK, (err) => {
             if (err) {
-                console.error('Erro ao fazer download do arquivo:', err);
-                return res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
+                console.error('Arquivo não encontrado:', err);
+                return res.status(404).json({ error: 'Arquivo não encontrado' });
             }
 
-            // Remova a parte que exclui o arquivo
-            // fs.unlink(pdfPath, (err) => {
-            //     if (err) {
-            //         console.error('Erro ao excluir o arquivo:', err);
-            //     } else {
-            //         console.log('Arquivo excluído com sucesso');
-            //     }
-            // });
+            res.download(pdfPath, 'ocorrencias.pdf', (err) => {
+                if (err) {
+                    console.error('Erro ao fazer download do arquivo:', err);
+                    return res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
+                }
+
+                // Exclua o arquivo após o download
+                fs.unlink(pdfPath, (err) => {
+                    if (err) {
+                        console.error('Erro ao excluir o arquivo:', err);
+                    } else {
+                        console.log('Arquivo excluído com sucesso');
+                    }
+                });
+            });
         });
-    });
+    } else {
+        res.status(401).json({ error: 'Usuário não autenticado' });
+    }
 });
 
 app.post('/login', upload.none(), async (req, res) => {
@@ -1089,8 +1129,14 @@ const broadcastUpdatedOcorrencia = (ocorrencia) => {
     });
 };
 
-
-
+// Função para enviar a exclusão da ocorrência a todos os clientes conectados
+const broadcastDeleteOcorrencia = (ocorrenciaId) => {
+    clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'delete-ocorrencia', id: ocorrenciaId }));
+        }
+    });
+};
 
 server.listen(port, () => {
     console.log(`Servidor HTTPS rodando em https://localhost:${port}`);

@@ -252,7 +252,7 @@ async function updateOcorrenciaList() {
     try {
         const response = await fetch('/ocorrencia', { headers: { 'Accept': 'application/json' } });
         const data = await response.json();
-        renderOcorrencias(data.ocorrencias);
+        renderOcorrencias(data.ocorrencias, data.isAdmin);
     } catch (err) {
         console.error('Erro ao atualizar a lista de ocorrências:', err);
     }
@@ -279,10 +279,8 @@ async function deleteOcorrencia(ocorrenciaId) {
         if (response.ok) {
             alert('Ocorrência excluída com sucesso.');
             // Remove o item da lista
-            document.querySelector(`tr[data-id="${ocorrenciaId}"]`).remove();
-        } else {
-            alert('Erro ao excluir ocorrência: ' + result.error);
-        }
+          //  document.querySelector(`tr[data-id="${ocorrenciaId}"]`).remove();
+        } 
     } catch (err) {
         console.error('Erro ao enviar a solicitação de exclusão:', err);
         alert('Erro ao excluir ocorrência.');
@@ -396,6 +394,11 @@ ws.onmessage = (event) => {
         updateOcorrenciaList();
 
     } else if (data.type === 'update-ocorrencia') {
+        console.log('Ocorrência atualizada:', data.ocorrencia);
+
+        // Atualiza a lista de ocorrências ou manipula a atualização específica
+        updateOcorrenciaList();  // Esta função pode recarregar a lista ou apenas manipular a atualização específica
+    } else if (data.type === 'delete-ocorrencia') {
         console.log('Ocorrência atualizada:', data.ocorrencia);
 
         // Atualiza a lista de ocorrências ou manipula a atualização específica
