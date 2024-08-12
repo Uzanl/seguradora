@@ -77,7 +77,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
         try {
             const userLoggedIn = true;
             const query = promisify(connection.query).bind(connection);
-            const userid =  req.session.userId ;
+            const userid = req.session.userId;
 
             // Obtém o offset da query string, se não houver, define como 0
             const offset = parseInt(req.query.offset) || 0;
@@ -191,7 +191,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 ])
             };
 
-            generatePdf(pdfData,userid)
+            generatePdf(pdfData, userid)
                 .then(message => console.log(message))
                 .catch(err => console.error('Erro ao gerar PDF:', err));
 
@@ -1138,6 +1138,6 @@ const broadcastDeleteOcorrencia = (ocorrenciaId) => {
     });
 };
 
-server.listen(port, () => {
-    console.log(`Servidor HTTPS rodando em https://localhost:${port}`);
+server.listen(port, '0.0.0.0', () => {
+    console.log(`Servidor HTTPS rodando em https://0.0.0.0:${port}`);
 });

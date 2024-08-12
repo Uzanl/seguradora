@@ -18,6 +18,7 @@
     <%- include('partials/header') %>
         <main>
             <div class="cadastro-form">
+                <h2>Cadastrar Usuário</h2>
                 <form class="user-form" id="user-form">
                     <label for="user-type">Tipo de Usuário:</label>
                     <select id="user-type" name="user-type" required>
@@ -117,7 +118,7 @@
                                                         ? 'selected' : '' %>>Funcionário</option>
                                                 </select>
 
-                                                <button type="button" onclick="saveUser(this)">Salvar</button>
+                                                <button type="button" class="save-button" onclick="saveUser(this)">Salvar</button>
                                             </div>
                                 </li>
                                 <% }); %>

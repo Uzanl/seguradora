@@ -69,3 +69,38 @@ input[type="password"]::-ms-clear {
     width: 20px;
     height: 20px;
 }
+
+/* Dispositivos móveis pequenos (por exemplo, iPhone SE) */
+@media only screen and (max-width: 320px) {
+    .login-form {
+        width: 90%;
+    }
+}
+
+/* Dispositivos móveis médios (por exemplo, smartphones padrão) */
+@media only screen and (min-width: 321px) and (max-width: 480px) {
+    .login-form {
+        width: 90%;
+    }
+}
+
+/* Dispositivos móveis grandes (por exemplo, smartphones grandes) */
+@media only screen and (min-width: 481px) and (max-width: 768px) {
+    .login-form {
+        width: 90%;
+    }
+}
+
+/* Tablets */
+@media only screen and (min-width: 769px) and (max-width: 992px) {
+    .login-form {
+        width: 80%;
+    }
+}
+
+/* Laptops e telas menores de desktop */
+@media only screen and (min-width: 993px) and (max-width: 1200px) {
+    .login-form {
+        width: 50%;
+    }
+}

@@ -378,7 +378,7 @@ PdfButton.addEventListener('click', () => {
 });
 
 
-const ws = new WebSocket('wss://localhost:3000');
+const ws = new WebSocket('wss://192.168.15.30:3000');
 
 ws.onopen = () => {
     console.log('Conexão WebSocket segura estabelecida.');

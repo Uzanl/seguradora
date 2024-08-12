@@ -1,14 +1,20 @@
 <aside hidden>
-    <ul>
+  <ul>
+    <% if (isAdmin) { %>
       <li><a href="/cliente">Cadastrar cliente</a></li>
       <li><a href="/usuario">Cadastrar usuário</a></li>
       <li><a href="/ocorrencia">Cadastrar ocorrência</a></li>
-      <li><a href="/login">Logar</a></li>
-      <li><a href="/sair">Sair</a></li>
-    </ul>
-  </aside>
-  <button type="button" aria-expanded="false" aria-controls="sidebar" aria-label="Abrir barra lateral" class="toggle-btn">
-    <span></span>
-    <span></span>
-    <span></span>
-  </button>
+      <% } %>
+        <% if (userLoggedIn) { %>
+
+          <li><a href="/logout">Sair</a></li>
+          <% } else { %>
+            <li><a href="/login">Logar</a></li>
+            <% } %>
+  </ul>
+</aside>
+<button type="button" aria-expanded="false" aria-controls="sidebar" aria-label="Abrir barra lateral" class="toggle-btn">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>

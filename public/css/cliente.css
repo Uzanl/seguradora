@@ -24,6 +24,8 @@ main {
     display: flex;
     align-items: center;
     width: 50%;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .resultado-pesquisa {
@@ -34,14 +36,14 @@ main {
     max-height: 70dvh;
 }
 
-.resultado-pesquisa ul{
+.resultado-pesquisa ul {
     display: flex;
     flex-direction: column;
     padding: 0;
     margin: 0;
 }
 
-.resultado-pesquisa li{
+.resultado-pesquisa li {
     display: flex;
     align-items: center;
     list-style: none;
@@ -50,20 +52,20 @@ main {
     border-bottom: 1px solid;
 }
 
-.search-form{
+.search-form {
     display: flex;
     align-items: center;
-    gap:10px;
+    gap: 10px;
 }
 
-.cliente-pesquisa{
+.cliente-pesquisa {
     width: 50%;
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-.search-form{
+.search-form {
     flex-wrap: wrap;
     display: flex;
     align-items: center;
@@ -78,24 +80,32 @@ select {
     border-radius: 15px;
 }
 
-.BtnCadastrar {
+.BtnCadastrar,
+.save-button {
     padding: 10px 20px;
-    cursor: pointer;
     border-radius: 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+
 }
 
-.edit-section{
+.edit-section {
     display: none;
     flex-direction: column;
     gap: 10px;
 }
 
-.update-button{
+.update-button {
     padding: 10px 20px;
     cursor: pointer;
     border-radius: 15px;
 }
 
-.toggle-btn{
+.toggle-btn {
     display: none;
+}
+
+button {
+    cursor: pointer;
 }
