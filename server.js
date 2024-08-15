@@ -658,37 +658,38 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             const query = promisify(connection.query).bind(connection);
 
             let searchQuery = `
-                SELECT
-                    ocorrencia.id_ocorrencia,
-                    ocorrencia.placa_veiculo,
-                    ocorrencia.placa_carreta,
-                    cliente.nome AS cliente_nome,
-                    ocorrencia.motorista,
-                    ocorrencia.descricao,
-                    ocorrencia.status,
-                    DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
-                    DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-                    usuario.login_usu AS usuario_login,
-                    ocorrencia.id_usuario,
-                    ocorrencia.id_cliente
-                FROM 
-                    ocorrencia
-                INNER JOIN 
-                    usuario ON ocorrencia.id_usuario = usuario.id_usu
-                INNER JOIN 
-                    cliente ON ocorrencia.id_cliente = cliente.id_cliente
-                WHERE 
-                    ocorrencia.id_ocorrencia LIKE ? AND
-                    ocorrencia.placa_veiculo LIKE ? AND
-                    ocorrencia.placa_carreta LIKE ? AND
-                    cliente.nome LIKE ? AND
-                    ocorrencia.motorista LIKE ? AND
-                    ocorrencia.descricao LIKE ? AND
-                    ocorrencia.status LIKE ?
-            `;
+    SELECT
+        ocorrencia.id_ocorrencia,
+        ocorrencia.placa_veiculo,
+        ocorrencia.placa_carreta,
+        cliente.nome AS cliente_nome,
+        ocorrencia.motorista,
+        ocorrencia.descricao,
+        ocorrencia.status,
+        DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+        DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+        usuario.login_usu AS usuario_login,
+        ocorrencia.id_usuario,
+        ocorrencia.id_cliente
+    FROM 
+        ocorrencia
+    INNER JOIN 
+        usuario ON ocorrencia.id_usuario = usuario.id_usu
+    INNER JOIN 
+        cliente ON ocorrencia.id_cliente = cliente.id_cliente
+    WHERE 
+        (ocorrencia.id_ocorrencia = ? OR ? IS NULL) AND
+        ocorrencia.placa_veiculo LIKE ? AND
+        ocorrencia.placa_carreta LIKE ? AND
+        cliente.nome LIKE ? AND
+        ocorrencia.motorista LIKE ? AND
+        ocorrencia.descricao LIKE ? AND
+        ocorrencia.status LIKE ?
+`;
 
             const queryParams = [
-                `${idocorrencia || ''}%`,
+                idocorrencia || null,  // Aqui, se idocorrencia estiver vazio, passamos null
+                idocorrencia || null,  // Para a condição OR
                 `${placaveiculo || ''}%`,
                 `${placacarreta || ''}%`,
                 `${nomecliente || ''}%`,
@@ -696,6 +697,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
                 `${descricao || ''}%`,
                 `${status || ''}%`
             ];
+
 
             // Adiciona as condições de data e hora
             if (datade && dataate) {
@@ -744,36 +746,36 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
                 ocorrencias: rows
             });
 
-            // Geração do PDF sem LIMIT e OFFSET
             let searchQueryPdf = `
-                SELECT
-                    ocorrencia.id_ocorrencia,
-                    ocorrencia.placa_veiculo,
-                    ocorrencia.placa_carreta,
-                    cliente.nome AS cliente_nome,
-                    ocorrencia.motorista,
-                    ocorrencia.descricao,
-                    ocorrencia.status,
-                    DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
-                    DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-                    usuario.login_usu AS usuario_login,
-                    ocorrencia.id_usuario,
-                    ocorrencia.id_cliente
-                FROM 
-                    ocorrencia
-                INNER JOIN 
-                    usuario ON ocorrencia.id_usuario = usuario.id_usu
-                INNER JOIN 
-                    cliente ON ocorrencia.id_cliente = cliente.id_cliente
-                WHERE 
-                    ocorrencia.id_ocorrencia LIKE ? AND
-                    ocorrencia.placa_veiculo LIKE ? AND
-                    ocorrencia.placa_carreta LIKE ? AND
-                    cliente.nome LIKE ? AND
-                    ocorrencia.motorista LIKE ? AND
-                    ocorrencia.descricao LIKE ? AND
-                    ocorrencia.status LIKE ?
-            `;
+            SELECT
+                ocorrencia.id_ocorrencia,
+                ocorrencia.placa_veiculo,
+                ocorrencia.placa_carreta,
+                cliente.nome AS cliente_nome,
+                ocorrencia.motorista,
+                ocorrencia.descricao,
+                ocorrencia.status,
+                DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                usuario.login_usu AS usuario_login,
+                ocorrencia.id_usuario,
+                ocorrencia.id_cliente
+            FROM 
+                ocorrencia
+            INNER JOIN 
+                usuario ON ocorrencia.id_usuario = usuario.id_usu
+            INNER JOIN 
+                cliente ON ocorrencia.id_cliente = cliente.id_cliente
+            WHERE 
+                (ocorrencia.id_ocorrencia = ? OR ? IS NULL) AND
+                ocorrencia.placa_veiculo LIKE ? AND
+                ocorrencia.placa_carreta LIKE ? AND
+                cliente.nome LIKE ? AND
+                ocorrencia.motorista LIKE ? AND
+                ocorrencia.descricao LIKE ? AND
+                ocorrencia.status LIKE ?
+        `;
+
 
             // Reaplica as condições de data e hora na consulta do PDF
             if (datade && dataate) {
@@ -963,10 +965,10 @@ app.post('/insert-user', async (req, res) => {
                 if (userType !== 'Administrador' && userType !== 'Funcionário') {
                     return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
                 }
-            }else{
-                   // Verificação do tipo de usuário para cadastros não-administrativos
-                   if (userType !== 'Administrador') {
-                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador".' });
+            } else {
+                // Verificação do tipo de usuário para cadastros não-administrativos
+                if (userType !== 'Administrador') {
+                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
                 }
             }
 

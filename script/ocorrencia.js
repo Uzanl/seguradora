@@ -377,6 +377,35 @@ PdfButton.addEventListener('click', () => {
     window.location.href = '/download-pdf';
 });
 
+const formEditor = document.querySelector('.form-editor');
+const btnExpand = document.querySelector('.Btnexpand');
+
+btnExpand.addEventListener('click', function() {
+    const isActive = formEditor.classList.toggle('active');
+    btnExpand.classList.toggle('active');
+
+    const isExpanded = btnExpand.getAttribute('aria-expanded') === 'true';
+    btnExpand.setAttribute('aria-expanded', !isExpanded);
+
+    
+    // Altera o texto do botão com base no estado do formulário
+    btnExpand.textContent = isActive ? '<' : '>';
+});
+
+
+const searchEditor = document.querySelector('.form-search');
+const btnExpandSearch = document.querySelector('.Btnexpandsearch');
+
+btnExpandSearch.addEventListener('click', function() {
+    const isActive = searchEditor.classList.toggle('active');
+    btnExpandSearch.classList.toggle('active');
+
+    const isExpanded = btnExpand.getAttribute('aria-expanded') === 'true';
+    btnExpandSearch.setAttribute('aria-expanded', !isExpanded);
+
+    // Altera o texto do botão com base no estado do formulário
+    btnExpandSearch.textContent = isActive ? '>' : '<';
+});
 
 const ws = new WebSocket('wss://localhost:3000');
 
