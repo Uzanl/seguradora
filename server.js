@@ -922,60 +922,75 @@ app.put('/update-user/:id', asyncHandler(async (req, res) => {
 }));
 
 app.post('/insert-user', async (req, res) => {
+    const { login, password, userType } = req.body;
 
-    if (req.session.userId && req.session.userType === "Administrador") {
-        const { login, password, userType } = req.body;
+    try {
+        // Conecte-se ao banco de dados e verifique se já existe um usuário cadastrado
+        const query = promisify(connection.query).bind(connection);
+        const checkUserExistsQuery = 'SELECT EXISTS(SELECT 1 FROM usuario) AS userExists';
+        const result = await query(checkUserExistsQuery);
 
-        // Verificação dos campos obrigatórios
-        const missingFields = [];
+        const userExists = result[0].userExists;
+        let isFirstLogin = !userExists; // isFirstLogin será true se nenhum usuário existir
 
-        if (!login) missingFields.push('Login');
-        if (!password) missingFields.push('Senha');
-        if (!userType) missingFields.push('Tipo de Usuário');
+        if ((req.session.userId && req.session.userType === "Administrador") || isFirstLogin) {
+            // Verificação dos campos obrigatórios
+            const missingFields = [];
 
-        if (missingFields.length > 0) {
-            const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
-            return res.status(400).json({ error: errorMessage });
-        }
+            if (!login) missingFields.push('Login');
+            if (!password) missingFields.push('Senha');
+            if (!userType) missingFields.push('Tipo de Usuário');
 
-        // Validação do login
-        if (!/^[A-Za-z]{1,12}$/.test(login)) {
-            return res.status(400).json({ error: 'Login deve ter no máximo 12 letras e conter apenas letras.' });
-        }
-
-        // Validação da senha
-        if (password.length > 16 || !/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/.test(password)) {
-            return res.status(400).json({
-                error: 'A senha deve ter no máximo 16 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.'
-            });
-        }
-
-        // Verificação do tipo de usuário
-        if (userType !== 'Administrador' && userType !== 'Funcionário') {
-            console.log
-            return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
-        }
-
-
-        try {
-            // Conecte-se ao banco de dados e insira o usuário
-            const query = promisify(connection.query).bind(connection);
-            const insertQuery = 'INSERT INTO usuario (login_usu, senha_usu, tipo) VALUES (?, ?, ?)';
-            await query(insertQuery, [login, password, userType]);
-
-            res.status(200).json({ message: 'Usuário cadastrado com sucesso.' });
-        } catch (err) {
-            if (err.code === 'ER_DUP_ENTRY') {
-                // Trata o erro de entrada duplicada
-                return res.status(400).json({ error: 'Login já cadastrado no sistema.' });
-            } else {
-                console.error('Erro ao cadastrar usuário:', err);
-                res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
+            if (missingFields.length > 0) {
+                const errorMessage = `Os seguintes campos devem ser preenchidos: ${missingFields.join(', ')}`;
+                return res.status(400).json({ error: errorMessage });
             }
+
+            // Validação do login
+            if (!/^[A-Za-z]{1,12}$/.test(login)) {
+                return res.status(400).json({ error: 'Login deve ter no máximo 12 letras e conter apenas letras.' });
+            }
+
+            // Validação da senha
+            if (password.length > 16 || !/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/.test(password)) {
+                return res.status(400).json({
+                    error: 'A senha deve ter no máximo 16 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.'
+                });
+            }
+
+            if (!isFirstLogin) {
+                // Verificação do tipo de usuário para cadastros não-administrativos
+                if (userType !== 'Administrador' && userType !== 'Funcionário') {
+                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
+                }
+            }else{
+                   // Verificação do tipo de usuário para cadastros não-administrativos
+                   if (userType !== 'Administrador') {
+                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador".' });
+                }
+            }
+
+            // Inserção do usuário no banco de dados
+            try {
+                const insertQuery = 'INSERT INTO usuario (login_usu, senha_usu, tipo) VALUES (?, ?, ?)';
+                await query(insertQuery, [login, password, userType]);
+
+                res.status(200).json({ message: 'Usuário cadastrado com sucesso.' });
+            } catch (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return res.status(400).json({ error: 'Login já cadastrado no sistema.' });
+                } else {
+                    console.error('Erro ao cadastrar usuário:', err);
+                    res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
+                }
+            }
+        } else {
+            return res.status(403).json({ error: 'Ação não permitida.' });
         }
+    } catch (err) {
+        console.error('Erro ao verificar se usuário existe:', err);
+        res.status(500).json({ error: 'Erro ao processar a solicitação.' });
     }
-
-
 });
 
 app.delete('/delete-user/:id', async (req, res) => {

@@ -65,6 +65,8 @@ async function registerUser(event) {
     const userType = document.getElementById('user-type').value;
     const messageDiv = document.getElementById('message');
 
+    let isFirstLogin = true;
+
     if (!isValidPassword(password)) {
         setFeedback(passwordFeedback, 'A senha deve ter pelo menos 6 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.', 'red');
         return;
@@ -81,7 +83,7 @@ async function registerUser(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ login, password, userType })
+            body: JSON.stringify({ login, password, userType, isFirstLogin })
         });
 
         const result = await response.json();

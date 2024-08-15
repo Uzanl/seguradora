@@ -122,3 +122,67 @@ input[type="password"]::-ms-clear {
     border: none;
 
 }
+
+.toggle-btn{
+    display: none;
+}
+
+/* Dispositivos móveis pequenos (por exemplo, iPhone SE) */
+@media only screen and (max-width: 320px) {
+    main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cadastro-form, .usuario-pesquisa {
+        width: 90%;
+    }
+}
+
+/* Dispositivos móveis médios (por exemplo, smartphones padrão) */
+@media only screen and (min-width: 321px) and (max-width: 480px) {
+    main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cadastro-form, .usuario-pesquisa {
+        width: 90%;
+    }
+}
+
+/* Dispositivos móveis grandes (por exemplo, smartphones grandes) */
+@media only screen and (min-width: 481px) and (max-width: 768px) {
+    main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cadastro-form, .usuario-pesquisa {
+        width: 90%;
+    }
+}
+
+/* Tablets */
+@media only screen and (min-width: 769px) and (max-width: 992px) {
+    main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cadastro-form, .usuario-pesquisa {
+        width: 80%;
+    }
+}
+
+/* Laptops e telas menores de desktop */
+@media only screen and (min-width: 993px) and (max-width: 1200px) {
+    main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cadastro-form, .usuario-pesquisa {
+        width: 50%;
+    }
+}

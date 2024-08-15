@@ -51,7 +51,7 @@ select {
     border-radius: 15px;
 }
 
-.BtnEnviar {
+.BtnEnviar, .save-button, .cancel-button {
     padding: 10px 20px;
     border-radius: 15px;
     background-color: #007bff;
@@ -90,19 +90,15 @@ td {
 
 th {
     background-color: #f4f4f4;
-    /* Cor de fundo das cabeçalhos */
     font-weight: bold;
-    /* Fonte em negrito para cabeçalhos */
 }
 
 tr:nth-child(even) {
     background-color: #f9f9f9;
-    /* Cor de fundo para linhas pares */
 }
 
 tr:hover {
     background-color: #f1f1f1;
-    /* Cor de fundo ao passar o mouse */
 }
 
 .td-button {
@@ -134,7 +130,7 @@ button {
     z-index: 1000;
     flex-direction: column;
     gap: 10px;
-    width: 300px;
+    width: 25%;
     /* Ajuste conforme necessário */
 }
 
@@ -162,6 +158,14 @@ button {
     display: none;
 }*/
 
+.Btnexpand {
+    height: 30px;
+    width: 30px;
+    position: absolute;
+    left: calc(25% + 20px);
+    top: 50%;
+}
+
 
 /* Dispositivos móveis pequenos (por exemplo, iPhone SE) */
 @media only screen and (max-width: 320px) {
@@ -180,6 +184,10 @@ button {
 
     .ocorrencia {
         width: 90%;
+    }
+
+    .edit-section{
+        width: 50%;
     }
 }
 
@@ -201,6 +209,10 @@ button {
     .ocorrencia {
         width: 90%;
     }
+
+    .edit-section{
+        width: 50%;
+    }
 }
 
 /* Dispositivos móveis grandes (por exemplo, smartphones grandes) */
@@ -220,6 +232,10 @@ button {
 
     .ocorrencia {
         width: 90%;
+    }
+
+    .edit-section{
+        width: 50%;
     }
 }
 
@@ -241,6 +257,10 @@ button {
     .ocorrencia {
         width: 80%;
     }
+
+    .edit-section{
+        width: 50%;
+    }
 }
 
 /* Laptops e telas menores de desktop */
@@ -259,7 +279,11 @@ button {
         width: 50%;
     }
 
-    .ocorrencia{
+    .ocorrencia {
+        width: 50%;
+    }
+
+    .edit-section{
         width: 50%;
     }
 }
