@@ -62,6 +62,7 @@ async function registerUser(event) {
     const password = passwordInput.value;
     const confirmPassword = confirmPasswordInput.value;
     const login = document.querySelector('.login').value;
+    const loginTrim =  login.trimEnd();
     const userType = document.getElementById('user-type').value;
     const messageDiv = document.getElementById('message');
 
@@ -81,7 +82,7 @@ async function registerUser(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ login, password, userType })
+            body: JSON.stringify({ loginTrim, password, userType })
         });
 
         const result = await response.json();

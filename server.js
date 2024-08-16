@@ -502,7 +502,11 @@ app.post('/insert-client', async (req, res) => {
 app.post('/insert-ocorrencia', upload.none(), async (req, res) => {
 
     if (req.session.userId) {
-        const { placaveiculo, placacarreta, idcliente, nomemotorista, descricao, status } = req.body;
+        let { placaveiculo, placacarreta, idcliente, nomemotorista, descricao, status } = req.body;
+
+        // Converter as placas para maiúsculas
+        placaveiculo = placaveiculo.toUpperCase();
+        placacarreta = placacarreta.toUpperCase();
 
         // Verificação dos campos obrigatórios
         const missingFields = [];
@@ -537,7 +541,7 @@ app.post('/insert-ocorrencia', upload.none(), async (req, res) => {
 
         // Validação do nome do motorista
         if (nomemotorista.length > 50) {
-            console.log("motorista")
+            console.log("motorista");
             return res.status(400).json({ error: 'Nome do Motorista deve ter no máximo 50 caracteres.' });
         }
 
@@ -924,7 +928,7 @@ app.put('/update-user/:id', asyncHandler(async (req, res) => {
 }));
 
 app.post('/insert-user', async (req, res) => {
-    const { login, password, userType } = req.body;
+    const { loginTrim, password, userType } = req.body;
 
     try {
         // Conecte-se ao banco de dados e verifique se já existe um usuário cadastrado
@@ -939,7 +943,7 @@ app.post('/insert-user', async (req, res) => {
             // Verificação dos campos obrigatórios
             const missingFields = [];
 
-            if (!login) missingFields.push('Login');
+            if (!loginTrim) missingFields.push('Login');
             if (!password) missingFields.push('Senha');
             if (!userType) missingFields.push('Tipo de Usuário');
 
@@ -949,7 +953,7 @@ app.post('/insert-user', async (req, res) => {
             }
 
             // Validação do login
-            if (!/^[A-Za-z]{1,12}$/.test(login)) {
+            if (!/^[A-Za-z]{1,12}$/.test(loginTrim)) {
                 return res.status(400).json({ error: 'Login deve ter no máximo 12 letras e conter apenas letras.' });
             }
 
@@ -968,14 +972,14 @@ app.post('/insert-user', async (req, res) => {
             } else {
                 // Verificação do tipo de usuário para cadastros não-administrativos
                 if (userType !== 'Administrador') {
-                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
+                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador".' });
                 }
             }
 
             // Inserção do usuário no banco de dados
             try {
                 const insertQuery = 'INSERT INTO usuario (login_usu, senha_usu, tipo) VALUES (?, ?, ?)';
-                await query(insertQuery, [login, password, userType]);
+                await query(insertQuery, [loginTrim, password, userType]);
 
                 res.status(200).json({ message: 'Usuário cadastrado com sucesso.' });
             } catch (err) {
