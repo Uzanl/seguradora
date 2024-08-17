@@ -378,7 +378,7 @@ PdfButton.addEventListener('click', () => {
 });
 
 const formEditor = document.querySelector('.form-editor');
-const btnExpand = document.querySelector('.Btnexpand');
+const btnExpand = document.getElementById('btn-cad-expand');
 
 btnExpand.addEventListener('click', function() {
     const isActive = formEditor.classList.toggle('active');
@@ -387,24 +387,35 @@ btnExpand.addEventListener('click', function() {
     const isExpanded = btnExpand.getAttribute('aria-expanded') === 'true';
     btnExpand.setAttribute('aria-expanded', !isExpanded);
 
-    
-    // Altera o texto do botão com base no estado do formulário
-    btnExpand.textContent = isActive ? '<' : '>';
+     // Trocar a imagem do botão
+     const img = btnExpand.querySelector('img');
+     if (!isExpanded) {
+         img.src = '/images/collapse-right.png';
+     } else {
+         img.src = '/images/collapse-left.png';
+     }
 });
 
 
 const searchEditor = document.querySelector('.form-search');
-const btnExpandSearch = document.querySelector('.Btnexpandsearch');
+const btnExpandSearch = document.getElementById('btn-search-expand');
 
 btnExpandSearch.addEventListener('click', function() {
     const isActive = searchEditor.classList.toggle('active');
     btnExpandSearch.classList.toggle('active');
 
-    const isExpanded = btnExpand.getAttribute('aria-expanded') === 'true';
+    const isExpanded = btnExpandSearch.getAttribute('aria-expanded') === 'true';
     btnExpandSearch.setAttribute('aria-expanded', !isExpanded);
 
-    // Altera o texto do botão com base no estado do formulário
-    btnExpandSearch.textContent = isActive ? '>' : '<';
+      // Trocar a imagem do botão
+      const img = btnExpandSearch.querySelector('img');
+      if (!isExpanded) {
+    
+          img.src = '/images/collapse-left.png';
+      } else {
+        img.src = '/images/collapse-right.png';
+      }
+
 });
 
 const ws = new WebSocket('wss://localhost:3000');

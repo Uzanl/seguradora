@@ -18,7 +18,7 @@ main {
     gap: 20px;
     display: flex;
     flex-direction: column;
-    width: 25%;
+    /* width: 25%;*/
     flex-grow: 1;
 }
 
@@ -35,16 +35,11 @@ main {
 .form-editor.active,
 .form-search.active {
     display: none;
-}
-
-.form-editor.active~.Btnexpand {
-    /* left: 0%;*/
 
 }
 
-.form-search.active~.Btnexpandsearch {
-    /*  right: 0%;*/
-}
+
+
 
 .Btnexpand {
     height: 30px;
@@ -170,21 +165,47 @@ button {
     align-items: center;
 }
 
-.cad-ocorrencia.show, .pesq-ocorrencia.show {
+.cad-ocorrencia.show,
+.pesq-ocorrencia.show {
     display: flex;
     /* Exibir quando expandido */
 }
 
-.arrow-icon.rotate {
+.ocor-arrow-icon.rotate {
     transform: rotate(180deg);
     /* Rotacionar o ícone ao expandir */
     transition: transform 0.3s ease;
 }
 
-.cad-ocorrencia, .pesq-ocorrencia {
+.cad-ocorrencia,
+.pesq-ocorrencia {
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+.ocor-arrow-icon {
+    display: none;
+}
+
+.cad-container,
+.search-container-ocor {
+    display: flex;
+   /* width: 25%;*/
+ 
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.cad-container.active,
+.form-search.active {
+    display: none;
+
+}
+
+.expand-button{
+    background-color: transparent;
+    border:none;
 }
 
 
@@ -195,14 +216,27 @@ button {
         align-items: center;
     }
 
+    .expand-button{
+        display: none;
+    }
+
+
     .form-editor,
     .form-search {
         gap: 20px;
         display: flex;
         flex-direction: column;
-        width: 90%;
+        /* width: 90%;*/
         order: 1;
     }
+
+    .cad-container,
+    .search-container-ocor {
+
+        width: 90%;
+
+    }
+
 
     .ocorrencia {
         width: 90%;
@@ -218,13 +252,18 @@ button {
         display: none;
     }
 
-    .cad-ocorrencia, .pesq-ocorrencia {
+    .cad-ocorrencia,
+    .pesq-ocorrencia {
         display: none;
         transition: all 0.3s ease;
     }
 
     .expand {
         cursor: pointer;
+    }
+
+    .ocor-arrow-icon {
+        display: block;
     }
 }
 
@@ -235,13 +274,25 @@ button {
         align-items: center;
     }
 
+    .expand-button{
+        display: none;
+    }
+
+
     .form-editor,
     .form-search {
         gap: 20px;
         display: flex;
         flex-direction: column;
-        width: 90%;
+        /*width: 90%;*/
         order: 1;
+    }
+
+    .cad-container,
+    .search-container-ocor {
+
+        width: 90%;
+
     }
 
     .ocorrencia {
@@ -258,13 +309,18 @@ button {
         display: none;
     }
 
-    .cad-ocorrencia, .pesq-ocorrencia {
+    .cad-ocorrencia,
+    .pesq-ocorrencia {
         display: none;
         transition: all 0.3s ease;
     }
 
     .expand {
         cursor: pointer;
+    }
+
+    .ocor-arrow-icon {
+        display: block;
     }
 }
 
@@ -275,13 +331,24 @@ button {
         align-items: center;
     }
 
+    .expand-button{
+        display: none;
+    }
+
     .form-editor,
     .form-search {
         gap: 20px;
         display: flex;
         flex-direction: column;
-        width: 90%;
+       /* width: 90%;*/
         order: 1;
+    }
+
+    .cad-container,
+    .search-container-ocor {
+
+        width: 90%;
+
     }
 
     .ocorrencia {
@@ -298,13 +365,18 @@ button {
         display: none;
     }
 
-    .cad-ocorrencia, .pesq-ocorrencia {
+    .cad-ocorrencia,
+    .pesq-ocorrencia {
         display: none;
         transition: all 0.3s ease;
     }
 
     .expand {
         cursor: pointer;
+    }
+
+    .ocor-arrow-icon {
+        display: block;
     }
 
 }
@@ -316,13 +388,24 @@ button {
         align-items: center;
     }
 
+    .expand-button{
+        display: none;
+    }
+
     .form-editor,
     .form-search {
         gap: 20px;
         display: flex;
         flex-direction: column;
-        width: 80%;
+      /*  width: 80%;*/
         order: 1;
+    }
+
+    .cad-container,
+    .search-container-ocor {
+
+        width: 80%;
+
     }
 
     .ocorrencia {
@@ -339,13 +422,18 @@ button {
         display: none;
     }
 
-    .cad-ocorrencia, .pesq-ocorrencia {
+    .cad-ocorrencia,
+    .pesq-ocorrencia {
         display: none;
         transition: all 0.3s ease;
     }
 
     .expand {
         cursor: pointer;
+    }
+
+    .ocor-arrow-icon {
+        display: block;
     }
 }
 
@@ -356,13 +444,25 @@ button {
         align-items: center;
     }
 
+    .expand-button{
+        display: none;
+    }
+
+
     .form-editor,
     .form-search {
         gap: 20px;
         display: flex;
         flex-direction: column;
-        width: 50%;
+      /*  width: 50%;*/
         order: 1;
+    }
+
+    .cad-container,
+    .search-container-ocor {
+
+        width: 50%;
+
     }
 
     .ocorrencia {
@@ -379,12 +479,17 @@ button {
         display: none;
     }
 
-    .cad-ocorrencia, .pesq-ocorrencia {
+    .cad-ocorrencia,
+    .pesq-ocorrencia {
         display: none;
         transition: all 0.3s ease;
     }
 
     .expand {
         cursor: pointer;
+    }
+
+    .ocor-arrow-icon {
+        display: block;
     }
 }
