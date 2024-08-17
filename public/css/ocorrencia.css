@@ -20,16 +20,13 @@ main {
     flex-direction: column;
     /* width: 25%;*/
     flex-grow: 1;
-}
-
-
-.form-editor,
-.form-search {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 15px;
     position: relative;
     transition: left 0.3s ease, opacity 0.3s ease;
-    /* Suaviza a transição */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     opacity: 1;
-    /* Inicialmente visível */
 }
 
 .form-editor.active,
@@ -37,9 +34,6 @@ main {
     display: none;
 
 }
-
-
-
 
 .Btnexpand {
     height: 30px;
@@ -191,9 +185,8 @@ button {
 .cad-container,
 .search-container-ocor {
     display: flex;
-   /* width: 25%;*/
- 
-    gap: 20px;
+    /* width: 25%;*/
+    gap: 10px;
     align-items: flex-start;
 }
 
@@ -203,9 +196,9 @@ button {
 
 }
 
-.expand-button{
+.expand-button {
     background-color: transparent;
-    border:none;
+    border: none;
 }
 
 
@@ -216,7 +209,7 @@ button {
         align-items: center;
     }
 
-    .expand-button{
+    .expand-button {
         display: none;
     }
 
@@ -230,11 +223,13 @@ button {
         order: 1;
     }
 
+
+
     .form-editor.active,
     .form-search.active {
-       
+
         display: flex;
-      
+
     }
 
     .cad-container,
@@ -281,16 +276,16 @@ button {
         align-items: center;
     }
 
-    .expand-button{
+    .expand-button {
         display: none;
     }
 
 
     .form-editor.active,
     .form-search.active {
-       
+
         display: flex;
-      
+
     }
 
 
@@ -346,15 +341,15 @@ button {
         align-items: center;
     }
 
-    .expand-button{
+    .expand-button {
         display: none;
     }
 
     .form-editor.active,
     .form-search.active {
-       
+
         display: flex;
-      
+
     }
 
 
@@ -363,7 +358,7 @@ button {
         gap: 20px;
         display: flex;
         flex-direction: column;
-       /* width: 90%;*/
+        /* width: 90%;*/
         order: 1;
     }
 
@@ -411,15 +406,15 @@ button {
         align-items: center;
     }
 
-    .expand-button{
+    .expand-button {
         display: none;
     }
 
     .form-editor.active,
     .form-search.active {
-       
+
         display: flex;
-      
+
     }
 
 
@@ -428,7 +423,7 @@ button {
         gap: 20px;
         display: flex;
         flex-direction: column;
-      /*  width: 80%;*/
+        /*  width: 80%;*/
         order: 1;
     }
 
@@ -475,15 +470,15 @@ button {
         align-items: center;
     }
 
-    .expand-button{
+    .expand-button {
         display: none;
     }
 
     .form-editor.active,
     .form-search.active {
-       
+
         display: flex;
-      
+
     }
 
 
@@ -493,7 +488,7 @@ button {
         gap: 20px;
         display: flex;
         flex-direction: column;
-      /*  width: 50%;*/
+        /*  width: 50%;*/
         order: 1;
     }
 
