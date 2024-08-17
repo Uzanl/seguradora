@@ -164,6 +164,28 @@ button {
     width: 25%;
 }
 
+.expand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cad-ocorrencia.show, .pesq-ocorrencia.show {
+    display: flex;
+    /* Exibir quando expandido */
+}
+
+.arrow-icon.rotate {
+    transform: rotate(180deg);
+    /* Rotacionar o ícone ao expandir */
+    transition: transform 0.3s ease;
+}
+
+.cad-ocorrencia, .pesq-ocorrencia {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
 
 
 /* Dispositivos móveis pequenos (por exemplo, iPhone SE) */
@@ -179,14 +201,30 @@ button {
         display: flex;
         flex-direction: column;
         width: 90%;
+        order: 1;
     }
 
     .ocorrencia {
         width: 90%;
+        order: 2;
     }
 
     .edit-section {
         width: 50%;
+    }
+
+    .Btnexpand,
+    .Btnexpandsearch {
+        display: none;
+    }
+
+    .cad-ocorrencia, .pesq-ocorrencia {
+        display: none;
+        transition: all 0.3s ease;
+    }
+
+    .expand {
+        cursor: pointer;
     }
 }
 
@@ -203,14 +241,30 @@ button {
         display: flex;
         flex-direction: column;
         width: 90%;
+        order: 1;
     }
 
     .ocorrencia {
         width: 90%;
+        order: 2;
     }
 
     .edit-section {
         width: 50%;
+    }
+
+    .Btnexpand,
+    .Btnexpandsearch {
+        display: none;
+    }
+
+    .cad-ocorrencia, .pesq-ocorrencia {
+        display: none;
+        transition: all 0.3s ease;
+    }
+
+    .expand {
+        cursor: pointer;
     }
 }
 
@@ -227,15 +281,32 @@ button {
         display: flex;
         flex-direction: column;
         width: 90%;
+        order: 1;
     }
 
     .ocorrencia {
         width: 90%;
+        order: 2;
     }
 
     .edit-section {
         width: 50%;
     }
+
+    .Btnexpand,
+    .Btnexpandsearch {
+        display: none;
+    }
+
+    .cad-ocorrencia, .pesq-ocorrencia {
+        display: none;
+        transition: all 0.3s ease;
+    }
+
+    .expand {
+        cursor: pointer;
+    }
+
 }
 
 /* Tablets */
@@ -251,14 +322,30 @@ button {
         display: flex;
         flex-direction: column;
         width: 80%;
+        order: 1;
     }
 
     .ocorrencia {
         width: 80%;
+        order: 2;
     }
 
     .edit-section {
         width: 50%;
+    }
+
+    .Btnexpand,
+    .Btnexpandsearch {
+        display: none;
+    }
+
+    .cad-ocorrencia, .pesq-ocorrencia {
+        display: none;
+        transition: all 0.3s ease;
+    }
+
+    .expand {
+        cursor: pointer;
     }
 }
 
@@ -275,13 +362,29 @@ button {
         display: flex;
         flex-direction: column;
         width: 50%;
+        order: 1;
     }
 
     .ocorrencia {
         width: 50%;
+        order: 2;
     }
 
     .edit-section {
         width: 50%;
+    }
+
+    .Btnexpand,
+    .Btnexpandsearch {
+        display: none;
+    }
+
+    .cad-ocorrencia, .pesq-ocorrencia {
+        display: none;
+        transition: all 0.3s ease;
+    }
+
+    .expand {
+        cursor: pointer;
     }
 }

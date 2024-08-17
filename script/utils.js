@@ -19,3 +19,27 @@ toggleBtn.addEventListener('click', function () {
   aside.hidden = isExpanded;
 });
 
+document.getElementById("cad-expand").addEventListener("click", function() {
+  const cadOcorrencia = document.getElementById("cad-ocorrencia");
+  const arrowIcon = document.getElementById("svg-cad-expand");
+
+  // Toggle da classe 'show' para expandir ou contrair a div
+  cadOcorrencia.classList.toggle("show");
+
+  // Toggle da classe 'rotate' para rotacionar o ícone
+  arrowIcon.classList.toggle("rotate");
+});
+
+document.getElementById("pesq-expand").addEventListener("click", function() {
+  const cadOcorrencia = document.getElementById("pesq-ocorrencia");
+  const arrowIcon = document.getElementById("svg-pesq-expand");
+
+  // Toggle da classe 'show' para expandir ou contrair a div
+  cadOcorrencia.classList.toggle("show");
+
+  // Toggle da classe 'rotate' para rotacionar o ícone
+  arrowIcon.classList.toggle("rotate");
+});
+
+
+
