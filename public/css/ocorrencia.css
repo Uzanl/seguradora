@@ -230,6 +230,13 @@ button {
         order: 1;
     }
 
+    .form-editor.active,
+    .form-search.active {
+       
+        display: flex;
+      
+    }
+
     .cad-container,
     .search-container-ocor {
 
@@ -276,6 +283,14 @@ button {
 
     .expand-button{
         display: none;
+    }
+
+
+    .form-editor.active,
+    .form-search.active {
+       
+        display: flex;
+      
     }
 
 
@@ -335,6 +350,14 @@ button {
         display: none;
     }
 
+    .form-editor.active,
+    .form-search.active {
+       
+        display: flex;
+      
+    }
+
+
     .form-editor,
     .form-search {
         gap: 20px;
@@ -392,6 +415,14 @@ button {
         display: none;
     }
 
+    .form-editor.active,
+    .form-search.active {
+       
+        display: flex;
+      
+    }
+
+
     .form-editor,
     .form-search {
         gap: 20px;
@@ -447,6 +478,14 @@ button {
     .expand-button{
         display: none;
     }
+
+    .form-editor.active,
+    .form-search.active {
+       
+        display: flex;
+      
+    }
+
 
 
     .form-editor,
