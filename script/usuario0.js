@@ -61,7 +61,7 @@ async function registerUser(event) {
     event.preventDefault();
     const password = passwordInput.value;
     const confirmPassword = confirmPasswordInput.value;
-    const login = document.querySelector('.login').value;
+    const loginTrim = document.querySelector('.login').value;
     const userType = document.getElementById('user-type').value;
     const messageDiv = document.getElementById('message');
 

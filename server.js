@@ -73,18 +73,16 @@ connection.connect((err) => {
 app.set('view engine', 'ejs');
 
 app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
+    console.time("test")
     if (req.session.userId) {
         try {
             const userLoggedIn = true;
             const query = promisify(connection.query).bind(connection);
             const userid = req.session.userId;
 
-            // Obtém o offset da query string, se não houver, define como 0
             const offset = parseInt(req.query.offset) || 0;
-            console.log(offset)
-            const limit = 100; // Limite fixo de 100 registros
+            const limit = 100;
 
-            // Consulta para buscar ocorrências com offset e limit
             const ocorrenciasQuery = `
                 SELECT
                     ocorrencia.id_ocorrencia, 
@@ -106,48 +104,15 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 INNER JOIN 
                     cliente ON ocorrencia.id_cliente = cliente.id_cliente
                ORDER BY 
-        CASE 
-            WHEN ocorrencia.status = 'Não Resolvido' THEN 1
-            WHEN ocorrencia.status = 'Pendente' THEN 2
-            WHEN ocorrencia.status = 'Resolvido' THEN 3
-            ELSE 4
-        END,
-        ocorrencia.data DESC,
-        ocorrencia.id_ocorrencia DESC
-    
+                    CASE 
+                        WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+                        WHEN ocorrencia.status = 'Pendente' THEN 2
+                        WHEN ocorrencia.status = 'Resolvido' THEN 3
+                        ELSE 4
+                    END,
+                    ocorrencia.data DESC,
+                    ocorrencia.id_ocorrencia DESC
                 LIMIT ?, ?;
-            `;
-
-            // Consulta para buscar todos os registros (para PDF)
-            const allOcorrenciasQuery = `
-                SELECT
-        ocorrencia.id_ocorrencia, 
-        ocorrencia.placa_veiculo,
-        ocorrencia.placa_carreta,
-        cliente.nome AS cliente_nome,
-        ocorrencia.motorista,
-        ocorrencia.descricao,
-        ocorrencia.status,
-        DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
-        DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
-        usuario.login_usu AS usuario_login,
-        ocorrencia.id_usuario,
-        ocorrencia.id_cliente
-    FROM 
-        ocorrencia
-    INNER JOIN 
-        usuario ON ocorrencia.id_usuario = usuario.id_usu
-    INNER JOIN 
-        cliente ON ocorrencia.id_cliente = cliente.id_cliente
-    ORDER BY 
-        CASE 
-            WHEN ocorrencia.status = 'Não Resolvido' THEN 1
-            WHEN ocorrencia.status = 'Pendente' THEN 2
-            WHEN ocorrencia.status = 'Resolvido' THEN 3
-            ELSE 4
-        END,
-        ocorrencia.data DESC,
-        ocorrencia.id_ocorrencia DESC;
             `;
 
             // Consulta para buscar todos os clientes
@@ -156,16 +121,17 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
             // Consulta para buscar todos os usuários
             const usuariosQuery = 'SELECT id_usu, login_usu FROM usuario';
 
-            // Executar as consultas em paralelo
-            const [ocorrencias, allOcorrencias, clients, usuarios] = await Promise.all([
+            // Executar as consultas necessárias para renderizar a página
+            const [ocorrencias, clients, usuarios] = await Promise.all([
                 query(ocorrenciasQuery, [offset, limit]),
-                query(allOcorrenciasQuery), // Consulta para todos os dados
                 query(clientesQuery),
                 query(usuariosQuery)
             ]);
 
+            console.timeEnd("test")
+
             const isAdmin = req.session.userType === 'Administrador';
-            console.log(req.session.userType)
+            console.log(req.session.userType);
 
             // Verifica se a solicitação é para JSON (feita via fetch)
             if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
@@ -174,7 +140,43 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 res.render('ocorrencia.ejs', { ocorrencias, clients, usuarios, isAdmin, userLoggedIn }); // Renderiza a página com os dados
             }
 
-            // Gere o PDF em segundo plano com todos os dados
+            // Inicia a medição do tempo para gerar o PDF
+            console.time('PDF Generation Time');
+
+            // Executa a consulta allOcorrenciasQuery e gera o PDF após a resposta ser enviada
+            const allOcorrenciasQuery = `
+                SELECT
+                    ocorrencia.id_ocorrencia, 
+                    ocorrencia.placa_veiculo,
+                    ocorrencia.placa_carreta,
+                    cliente.nome AS cliente_nome,
+                    ocorrencia.motorista,
+                    ocorrencia.descricao,
+                    ocorrencia.status,
+                    DATE_FORMAT(ocorrencia.data, '%d/%m/%Y') AS data_ocorrencia,
+                    DATE_FORMAT(ocorrencia.data, '%H:%i') AS hora_ocorrencia,
+                    usuario.login_usu AS usuario_login,
+                    ocorrencia.id_usuario,
+                    ocorrencia.id_cliente
+                FROM 
+                    ocorrencia
+                INNER JOIN 
+                    usuario ON ocorrencia.id_usuario = usuario.id_usu
+                INNER JOIN 
+                    cliente ON ocorrencia.id_cliente = cliente.id_cliente
+                ORDER BY 
+                    CASE 
+                        WHEN ocorrencia.status = 'Não Resolvido' THEN 1
+                        WHEN ocorrencia.status = 'Pendente' THEN 2
+                        WHEN ocorrencia.status = 'Resolvido' THEN 3
+                        ELSE 4
+                    END,
+                    ocorrencia.data DESC,
+                    ocorrencia.id_ocorrencia DESC;
+            `;
+
+            const allOcorrencias = await query(allOcorrenciasQuery);
+
             const pdfData = {
                 headers: ['ID', 'Placa Veículo', 'Placa Carreta', 'Cliente', 'Motorista', 'Descrição', 'Status', 'Data', 'Hora', 'Usuário'],
                 rows: allOcorrencias.map(row => [
@@ -195,15 +197,17 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 .then(message => console.log(message))
                 .catch(err => console.error('Erro ao gerar PDF:', err));
 
+            // Finaliza a medição do tempo e exibe no console
+            console.timeEnd('PDF Generation Time');
+
+
         } catch (err) {
             console.error('Erro ao buscar ocorrências:', err);
             next(err); // Passa o erro para o middleware de tratamento de erros
         }
     } else {
-        res.redirect('login')
+        res.redirect('login');
     }
-
-
 }));
 
 app.get('/cliente', asyncHandler(async (req, res, next) => {
@@ -638,6 +642,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
 
         const {
             idocorrencia,
+            nomeusuario,
             placaveiculo,
             placacarreta,
             nomecliente,
@@ -664,6 +669,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             let searchQuery = `
     SELECT
         ocorrencia.id_ocorrencia,
+        usuario.login_usu,
         ocorrencia.placa_veiculo,
         ocorrencia.placa_carreta,
         cliente.nome AS cliente_nome,
@@ -683,6 +689,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
         cliente ON ocorrencia.id_cliente = cliente.id_cliente
     WHERE 
         (ocorrencia.id_ocorrencia = ? OR ? IS NULL) AND
+        usuario.login_usu LIKE ? AND
         ocorrencia.placa_veiculo LIKE ? AND
         ocorrencia.placa_carreta LIKE ? AND
         cliente.nome LIKE ? AND
@@ -694,6 +701,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             const queryParams = [
                 idocorrencia || null,  // Aqui, se idocorrencia estiver vazio, passamos null
                 idocorrencia || null,  // Para a condição OR
+                `${nomeusuario || ''}%`,
                 `${placaveiculo || ''}%`,
                 `${placacarreta || ''}%`,
                 `${nomecliente || ''}%`,
@@ -742,6 +750,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             queryParams.push(parseInt(offset, 10));
 
             // Executa a consulta principal
+
             const rows = await query(searchQuery, queryParams);
 
             // Incluindo o isAdmin na resposta
@@ -753,6 +762,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
             let searchQueryPdf = `
             SELECT
                 ocorrencia.id_ocorrencia,
+                usuario.login_usu,
                 ocorrencia.placa_veiculo,
                 ocorrencia.placa_carreta,
                 cliente.nome AS cliente_nome,
@@ -772,6 +782,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
                 cliente ON ocorrencia.id_cliente = cliente.id_cliente
             WHERE 
                 (ocorrencia.id_ocorrencia = ? OR ? IS NULL) AND
+                usuario.login_usu LIKE ? AND
                 ocorrencia.placa_veiculo LIKE ? AND
                 ocorrencia.placa_carreta LIKE ? AND
                 cliente.nome LIKE ? AND
@@ -790,7 +801,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
                 searchQueryPdf += ' AND DATE(ocorrencia.data) <= DATE(?)';
             }
 
-            if (horade && horaate) {
+            if (horade || horaate) {
                 searchQueryPdf += ' AND TIME(ocorrencia.data) BETWEEN TIME(?) AND TIME(?)';
             } else if (horade) {
                 searchQueryPdf += ' AND TIME(ocorrencia.data) = TIME(?)';
@@ -1025,6 +1036,7 @@ app.delete('/delete-user/:id', async (req, res) => {
 // Rota para download do PDF
 app.get('/download-pdf', (req, res) => {
     if (req.session.userId) {
+
         const userId = req.session.userId;
         const fileName = `ocorrencias_${userId}.pdf`;
         const pdfPath = path.join(__dirname, 'pdfs', fileName);
@@ -1052,6 +1064,8 @@ app.get('/download-pdf', (req, res) => {
                 });
             });
         });
+
+
     } else {
         res.status(401).json({ error: 'Usuário não autenticado' });
     }
@@ -1071,24 +1085,20 @@ app.post('/login', upload.none(), async (req, res) => {
         const selectQuery = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario WHERE login_usu = ?';
         const results = await query(selectQuery, [login]);
 
-        if (results.length === 0) {
-            return res.status(401).json({ error: 'Usuário não encontrado.' });
+        // Verifique se o usuário existe e se a senha está correta
+        if (results.length === 0 || password !== results[0].senha_usu) {
+            return res.status(401).json({ error: 'Login ou senha incorretos.' });
         }
 
         const user = results[0];
 
-        // Verifica se a senha está correta
-        if (password === user.senha_usu) {
-            // Armazenar informações na sessão
-            req.session.userId = user.id_usu;
-            req.session.username = user.login_usu;
-            req.session.userType = user.tipo;
+        // Armazenar informações na sessão
+        req.session.userId = user.id_usu;
+        req.session.username = user.login_usu;
+        req.session.userType = user.tipo;
 
+        res.status(200).json({ message: 'Login bem-sucedido' });
 
-            res.status(200).json({ message: 'Login bem-sucedido' });
-        } else {
-            res.status(401).json({ error: 'Senha incorreta' });
-        }
     } catch (err) {
         console.error('Erro ao realizar login:', err);
         res.status(500).json({ error: 'Erro ao realizar login.' });
@@ -1101,6 +1111,18 @@ app.get('/logout', (req, res) => {
         res.redirect('/login'); // Redireciona para a página de login após o logout
     });
 });
+
+
+// IP e porta do WebSocket definidos no servidor
+const serverIP = 'localhost';
+const serverPort = 3000;
+
+app.get('/wssconfig', (req, res) => {
+    res.json({
+        wsURL: `wss://${serverIP}:${serverPort}`
+    });
+});
+
 
 // Middleware de Tratamento de Erros Global
 app.use((err, req, res, next) => {

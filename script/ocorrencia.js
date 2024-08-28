@@ -17,35 +17,22 @@ const EditUsuarioLogin = document.getElementById('edit-usuario-login')
 
 
 $(document).ready(function () {
-
+    // Inicializa o select2
     $('.select-client').select2();
+
     // Máscaras
-    var maskAntiga = 'AAA9999'; // Máscara para placas antigas
-    var maskMercosul = 'AAA9A99'; // Máscara para placas Mercosul
+    const maskAntiga = 'AAA9999'; // Máscara para placas antigas
+    const maskMercosul = 'AAA9A99'; // Máscara para placas Mercosul
+    const $placa = $('.placa');
 
-    var $placa = $('.placa');
-
-
-    // Função para aplicar a máscara com base na condição
     function applyMask($element) {
-        var value = $element.val();
-        if (value.length > 4 && isNaN(value.charAt(4))) {
-            $element.unmask().mask(maskMercosul);
-        } else {
-            $element.unmask().mask(maskAntiga);
-        }
+        const value = $element.val();
+        const mask = value.length > 4 && isNaN(value.charAt(4)) ? maskMercosul : maskAntiga;
+        $element.unmask().mask(mask);
     }
 
-    // Aplica a máscara inicial
-    $placa.mask(maskAntiga);
-
-    // Atualiza a máscara com base na entrada
-    $placa.on('input', function () {
-        applyMask($placa);
-    });
-
-    // Atualiza a máscara se o campo estiver vazio
-    $placa.on('focus', function () {
+    // Aplica e atualiza a máscara
+    $placa.mask(maskAntiga).on('input focus', function () {
         applyMask($placa);
     });
 });
@@ -78,7 +65,15 @@ const handleOcorrenciaSubmit = async (event, isUpdate = false) => {
                 ? 'Ocorrência atualizada com sucesso.'
                 : 'Ocorrência cadastrada com sucesso!';
             alert(successMessage);
-            if (!isUpdate) form.reset(); // Limpa o formulário apenas para novos cadastros
+            if (isUpdate) {
+                // Oculta a EditSection após uma atualização bem-sucedida
+                const editSection = document.querySelector('.edit-section');
+                if (editSection) {
+                    editSection.style.display = 'none';
+                }
+            } else {
+                form.reset(); // Limpa o formulário apenas para novos cadastros
+            }
         } else {
             const errorData = await response.json();
             alert(`Erro: ${errorData.error}`);
@@ -234,15 +229,12 @@ async function handleSearchOrFetch(event, loadMore = false) {
     }
 }
 
-
 // Adicione um listener ao botão de "Carregar Mais"
 if (LoadMoreButton) {
     LoadMoreButton.addEventListener('click', (event) => {
         handleSearchOrFetch(event, true); // Passa `true` para indicar "Carregar Mais"
     });
 }
-
-
 
 async function updateOcorrenciaList() {
 
@@ -279,8 +271,8 @@ async function deleteOcorrencia(ocorrenciaId) {
         if (response.ok) {
             alert('Ocorrência excluída com sucesso.');
             // Remove o item da lista
-          //  document.querySelector(`tr[data-id="${ocorrenciaId}"]`).remove();
-        } 
+            //  document.querySelector(`tr[data-id="${ocorrenciaId}"]`).remove();
+        }
     } catch (err) {
         console.error('Erro ao enviar a solicitação de exclusão:', err);
         alert('Erro ao excluir ocorrência.');
@@ -305,41 +297,31 @@ function addEventListenersToOcorrenciaButtons() {
 function editOcorrencia(ocorrenciaId) {
     const listItem = document.querySelector(`tr[data-id="${ocorrenciaId}"]`);
 
-    if (EditPlacaVeiculo) {
-        EditPlacaVeiculo.value = listItem.querySelector('.placa-veiculo').innerText;
+    // Função auxiliar para verificar e atribuir valores
+    function setValueIfExists(element, selector) {
+        if (element) {
+            element.value = listItem.querySelector(selector).innerText;
+        }
     }
 
-    if (EditPlacaCarreta) {
-        EditPlacaCarreta.value = listItem.querySelector('.placa-carreta').innerText;
-    }
+    // Preencher os campos de edição
+    setValueIfExists(EditPlacaVeiculo, '.placa-veiculo');
+    setValueIfExists(EditPlacaCarreta, '.placa-carreta');
+    setValueIfExists(EditMotorista, '.motorista');
+    setValueIfExists(EditDescricao, '.descricao');
+    setValueIfExists(EditStatus, '.status');
 
-    if (EditMotorista) {
-        EditMotorista.value = listItem.querySelector('.motorista').innerText;
-    }
-
-    if (EditDescricao) {
-        EditDescricao.value = listItem.querySelector('.descricao').innerText;
-    }
-
-    if (EditStatus) {
-        EditStatus.value = listItem.querySelector('.status').innerText;
-    }
-
+    // Formatando a data e hora
     const dataOcorrencia = listItem.querySelector('.data-ocorrencia').innerText;
-    const formattedDataOcorrencia = formatDateForInput(dataOcorrencia);
+    setValueIfExists(EditDataOcorrencia, '.data-ocorrencia');
+    setValueIfExists(EditHoraOcorrencia, '.hora-ocorrencia');
 
+    // Atualizar data e hora se os elementos existirem
     if (EditDataOcorrencia) {
-        EditDataOcorrencia.value = formattedDataOcorrencia;
+        EditDataOcorrencia.value = formatDateForInput(dataOcorrencia);
     }
 
-    if (EditHoraOcorrencia) {
-        // Preencher o campo de hora
-        EditHoraOcorrencia.value = listItem.querySelector('.hora-ocorrencia').innerText;
-    }
-
-
-
-    // Definir o data-id da div de edição
+    // Definir data-id e usuário
     EditSection.dataset.id = ocorrenciaId;
     SaveButton.dataset.id = ocorrenciaId;
 
@@ -350,15 +332,13 @@ function editOcorrencia(ocorrenciaId) {
     }
 
 
-    // Supondo que você tem o `clientId` disponível
     const clientId = listItem.querySelector('.cliente-nome').dataset.id;
-
-    // Atualiza o Select2 com o valor do `clientId`
     $('#edit-cliente-nome').val(clientId).trigger('change');
 
     // Exibir a seção de edição
     EditSection.style.display = 'flex';
 }
+
 
 if (CancelBtn) {
     CancelBtn.addEventListener('click', () => {
@@ -374,83 +354,71 @@ function formatDateForInput(dateString) {
 addEventListenersToOcorrenciaButtons();
 
 PdfButton.addEventListener('click', () => {
+
     window.location.href = '/download-pdf';
-});
-
-const formEditor = document.querySelector('.form-editor');
-const btnExpand = document.getElementById('btn-cad-expand');
-
-btnExpand.addEventListener('click', function() {
-    const isActive = formEditor.classList.toggle('active');
-    btnExpand.classList.toggle('active');
-
-    const isExpanded = btnExpand.getAttribute('aria-expanded') === 'true';
-    btnExpand.setAttribute('aria-expanded', !isExpanded);
-
-     // Trocar a imagem do botão
-     const img = btnExpand.querySelector('img');
-     if (!isExpanded) {
-         img.src = '/images/collapse-right.png';
-     } else {
-         img.src = '/images/collapse-left.png';
-     }
-});
-
-
-const searchEditor = document.querySelector('.form-search');
-const btnExpandSearch = document.getElementById('btn-search-expand');
-
-btnExpandSearch.addEventListener('click', function() {
-    const isActive = searchEditor.classList.toggle('active');
-    btnExpandSearch.classList.toggle('active');
-
-    const isExpanded = btnExpandSearch.getAttribute('aria-expanded') === 'true';
-    btnExpandSearch.setAttribute('aria-expanded', !isExpanded);
-
-      // Trocar a imagem do botão
-      const img = btnExpandSearch.querySelector('img');
-      if (!isExpanded) {
-    
-          img.src = '/images/collapse-left.png';
-      } else {
-        img.src = '/images/collapse-right.png';
-      }
 
 });
 
-const ws = new WebSocket('wss://localhost:3000');
+function toggleExpand(editorSelector, buttonSelector, expandImage, collapseImage) {
+    const editor = document.querySelector(editorSelector);
+    const button = document.getElementById(buttonSelector);
 
-ws.onopen = () => {
-    console.log('Conexão WebSocket segura estabelecida.');
-};
+    button.addEventListener('click', function () {
+        editor.classList.toggle('active');
+        button.classList.toggle('active');
 
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+        const isExpanded = button.getAttribute('aria-expanded') === 'true';
+        button.setAttribute('aria-expanded', !isExpanded);
 
-    if (data.type === 'new-ocorrencia') {
-        console.log('Nova ocorrência recebida:', data.ocorrencia);
+        // Trocar a imagem do botão
+        const img = button.querySelector('img');
+        img.src = isExpanded ? collapseImage : expandImage;
+    });
+}
 
-        // Atualiza a lista de ocorrências chamando a função updateOcorrenciaList
-        updateOcorrenciaList();
+// Uso da função para cada editor
+toggleExpand('.form-editor', 'btn-cad-expand', '/images/collapse-right.png', '/images/collapse-left.png');
+toggleExpand('.form-search', 'btn-search-expand', '/images/collapse-right.png', '/images/collapse-left.png');
 
-    } else if (data.type === 'update-ocorrencia') {
-        console.log('Ocorrência atualizada:', data.ocorrencia);
+// main.js ou outro arquivo JS que você usa no cliente
+async function initializeWebSocket() {
+    try {
+        const response = await fetch('/wssconfig');
+        const config = await response.json();
 
-        // Atualiza a lista de ocorrências ou manipula a atualização específica
-        updateOcorrenciaList();  // Esta função pode recarregar a lista ou apenas manipular a atualização específica
-    } else if (data.type === 'delete-ocorrencia') {
-        console.log('Ocorrência atualizada:', data.ocorrencia);
+        const ws = new WebSocket(config.wsURL);
 
-        // Atualiza a lista de ocorrências ou manipula a atualização específica
-        updateOcorrenciaList();  // Esta função pode recarregar a lista ou apenas manipular a atualização específica
+        ws.onopen = () => {
+            console.log('Conexão WebSocket segura estabelecida.');
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'new-ocorrencia') {
+                console.log('Nova ocorrência recebida:', data.ocorrencia);
+                updateOcorrenciaList();
+            } else if (data.type === 'update-ocorrencia') {
+                console.log('Ocorrência atualizada:', data.ocorrencia);
+                updateOcorrenciaList();
+            } else if (data.type === 'delete-ocorrencia') {
+                console.log('Ocorrência deletada:', data.ocorrencia);
+                updateOcorrenciaList();
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('Conexão WebSocket fechada.');
+        };
+
+        ws.onerror = (error) => {
+            console.error('Erro na conexão WebSocket:', error);
+        };
+    } catch (error) {
+        console.error('Erro ao obter configuração:', error);
     }
-};
+}
 
+// Chama a função para inicializar o WebSocket
+initializeWebSocket();
 
-ws.onclose = () => {
-    console.log('Conexão WebSocket fechada.');
-};
-
-ws.onerror = (error) => {
-    console.error('Erro na conexão WebSocket:', error);
-};

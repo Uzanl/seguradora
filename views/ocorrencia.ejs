@@ -24,6 +24,7 @@
     <script src="/script/ocorrencia.js" defer></script>
 
 
+
     <title>Formulário de Ocorrências</title>
 </head>
 
@@ -32,27 +33,23 @@
         <%- include('partials/sidebar') %>
             <main>
                 <div class="cad-container">
-
                     <form class="form-editor" id="ocorrencia-form" enctype="multipart/form-data"
                         aria-label="Formulário de inserção de ocorrências">
                         <div class="expand" id="cad-expand">
                             <h2>Cadastrar Ocorrência</h2>
-
                             <svg class="ocor-arrow-icon" id="svg-cad-expand" xmlns="http://www.w3.org/2000/svg"
                                 width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd"
                                     d="M1.293 4.293a1 1 0 011.414 0L8 9.586l5.293-5.293a1 1 0 111.414 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414z" />
                             </svg>
-
-
                         </div>
                         <div id="cad-ocorrencia" class="cad-ocorrencia">
                             <label for="placa-veiculo">Placa do Veículo:</label>
-                            <input type="text" id="placa-veiculo" class="placa" name="placaveiculo"
+                            <input type="text" autocomplete="off" id="placa-veiculo" class="placa" name="placaveiculo"
                                 placeholder="Digite a placa do veículo" required>
 
                             <label for="placa-carreta">Placa da Carreta:</label>
-                            <input type="text" id="placa-carreta" class="placa" name="placacarreta"
+                            <input type="text" autocomplete="off" id="placa-carreta" class="placa" name="placacarreta"
                                 placeholder="Digite a placa da carreta" required>
 
                             <label for="id-cliente">Nome do Cliente:</label>
@@ -66,12 +63,12 @@
                             </select>
 
                             <label for="nome-motorista">Nome do Motorista:</label>
-                            <input type="text" id="nome-motorista" name="nomemotorista"
+                            <input type="text" autocomplete="off" id="nome-motorista" name="nomemotorista"
                                 placeholder="Digite o nome do motorista" required>
 
                             <label for="descricao">Descrição:</label>
-                            <textarea id="descricao" name="descricao" placeholder="Digite a descrição da ocorrência"
-                                rows="4" required></textarea>
+                            <textarea id="descricao" autocomplete="off" name="descricao"
+                                placeholder="Digite a descrição da ocorrência" rows="4" required></textarea>
 
                             <label for="status">Status:</label>
                             <select id="status" name="status" required>
@@ -85,19 +82,12 @@
 
 
                     </form>
-                  
-                        <button type="button" class="expand-button" id="btn-cad-expand" >
-                            <img src="/images/collapse-left.png" alt="Expand" width="16" height="16">
-                        </button>
-                
 
+                    <button type="button" class="expand-button" id="btn-cad-expand">
+                        <img src="/images/collapse-left.png" alt="Expand" width="16" height="16">
+                    </button>
                 </div>
-
-
-
                 <div class="ocorrencia">
-
-
                     <table id="ocorrencias-table">
                         <thead>
                             <tr>
@@ -242,13 +232,9 @@
 
                 <div class="search-container-ocor">
 
-                
-                     
-                            <button type="button"  class="expand-button" id="btn-search-expand" >
-                                <img src="/images/collapse-right.png" alt="Expand" width="16" height="16">
-                            </button>
-                        
-                    
+                    <button type="button" class="expand-button" id="btn-search-expand">
+                        <img src="/images/collapse-right.png" alt="Expand" width="16" height="16">
+                    </button>
 
                     <form class="form-search">
 
@@ -265,6 +251,10 @@
                             <label for="id-ocorrencia-pesquisa">ID da ocorrência:</label>
                             <input type="text" id="id-ocorrencia-pesquisa" placeholder="Pesquise com a placa do veículo"
                                 name="idocorrencia">
+
+                            <label for="nome-usuario-pesquisa">Nome do Usuário:</label>
+                            <input type="text" id="nome-usuario-pesquisa"
+                                placeholder="Pesquise com o nome do usuário" name="nomeusuario">
 
                             <label for="placa-veiculo-pesquisa">Placa do Veículo:</label>
                             <input type="text" id="placa-veiculo-pesquisa" class="placa"
@@ -306,21 +296,14 @@
                             <label for="hora-ate-pesquisa">Hora até:</label>
                             <input type="time" id="hora-ate-pesquisa" name="horaate">
 
-
-
                             <button type="button" id="export-pdf-button" class="BtnPdf">
                                 <img width="30" height="30" src="/images/pdf.webp" alt="Exportar para PDF">
                             </button>
 
                         </div>
-
-
                     </form>
                 </div>
-
-
             </main>
-
 </body>
 
 </html>

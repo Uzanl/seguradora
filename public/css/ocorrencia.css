@@ -7,7 +7,7 @@ body {
 
 main {
     display: flex;
-    margin: 30px;
+    margin: 20px;
     gap: 20px;
     flex-direction: row;
     flex-grow: 1;
@@ -347,9 +347,7 @@ button {
 
     .form-editor.active,
     .form-search.active {
-
         display: flex;
-
     }
 
 
@@ -495,12 +493,12 @@ button {
     .cad-container,
     .search-container-ocor {
 
-        width: 50%;
+        width: 70%;
 
     }
 
     .ocorrencia {
-        width: 50%;
+        width: 70%;
         order: 2;
     }
 
