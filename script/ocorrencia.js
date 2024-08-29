@@ -353,11 +353,31 @@ function formatDateForInput(dateString) {
 
 addEventListenersToOcorrenciaButtons();
 
-PdfButton.addEventListener('click', () => {
+PdfButton.addEventListener('click', async () => {
+    try {
+        const response = await fetch('/download-pdf');
 
-    window.location.href = '/download-pdf';
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error);
+        }
 
+        // Para iniciar o download do PDF
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ocorrencias.pdf';
+        document.body.appendChild(a);
+        a.click(); 
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
 });
+
 
 function toggleExpand(editorSelector, buttonSelector, expandImage, collapseImage) {
     const editor = document.querySelector(editorSelector);
