@@ -83,7 +83,7 @@ async function registerUser(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ login, password, userType, isFirstLogin })
+            body: JSON.stringify({ loginTrim, password, userType, isFirstLogin })
         });
 
         const result = await response.json();
