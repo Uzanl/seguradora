@@ -48,8 +48,8 @@ const asyncHandler = fn => (req, res, next) => {
 };
 
 // Aumentar o limite de tamanho para 200mb, por exemplo
-app.use(bodyParser.json({ limit: '200mb' }));
-app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -59,10 +59,10 @@ app.use(express.static(path.join(__dirname, 'views')));
 app.use('/script', express.static(path.join(__dirname, 'script')));
 
 // Create a connection to the MySQL database
-const connection = mysql.createConnection(dbConfig);
+const pool = mysql.createPool(dbConfig);
 
 // Connect to the database
-connection.connect((err) => {
+pool.getConnection((err) => {
     if (err) {
         console.error('Error connecting to the database:', err);
         return;
@@ -975,18 +975,12 @@ app.post('/insert-user', async (req, res) => {
                 });
             }
 
-            if (!isFirstLogin) {
-                // Verificação do tipo de usuário para cadastros não-administrativos
-                if (userType !== 'Administrador' && userType !== 'Funcionário') {
-                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador" ou "Funcionário".' });
-                }
-            } else {
-                // Verificação do tipo de usuário para cadastros não-administrativos
-                if (userType !== 'Administrador') {
-                    return res.status(400).json({ error: 'Tipo de Usuário inválido. Deve ser "Administrador".' });
-                }
-            }
+            const validUserTypes = isFirstLogin ? ['Administrador'] : ['Administrador', 'Funcionário'];
 
+            if (!validUserTypes.includes(userType)) {
+                return res.status(400).json({ error: `Tipo de Usuário inválido. Deve ser ${validUserTypes.join(' ou ')}.` });
+            }
+            
             // Inserção do usuário no banco de dados
             try {
                 const insertQuery = 'INSERT INTO usuario (login_usu, senha_usu, tipo) VALUES (?, ?, ?)';
