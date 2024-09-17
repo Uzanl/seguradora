@@ -73,11 +73,11 @@ pool.getConnection((err) => {
 app.set('view engine', 'ejs');
 
 app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
-    console.time("test")
+   
     if (req.session.userId) {
         try {
             const userLoggedIn = true;
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const userid = req.session.userId;
 
             const offset = parseInt(req.query.offset) || 0;
@@ -128,7 +128,7 @@ app.get('/ocorrencia', asyncHandler(async (req, res, next) => {
                 query(usuariosQuery)
             ]);
 
-            console.timeEnd("test")
+      
 
             const isAdmin = req.session.userType === 'Administrador';
             console.log(req.session.userType);
@@ -215,7 +215,7 @@ app.get('/cliente', asyncHandler(async (req, res, next) => {
         try {
             const isAdmin = true;
             const userLoggedIn = true
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const selectQuery = 'SELECT id_cliente, nome, cnpj FROM cliente ORDER BY id_cliente DESC LIMIT 50';
             const clients = await query(selectQuery);
 
@@ -249,7 +249,7 @@ app.get('/usuario', asyncHandler(async (req, res, next) => {
         try {
             const isAdmin = true;
             const userLoggedIn = true;
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const selectQuery = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario ORDER BY id_usu DESC LIMIT 50';
             const users = await query(selectQuery);
 
@@ -272,7 +272,7 @@ app.get('/usuario', asyncHandler(async (req, res, next) => {
 
 app.get('/login', asyncHandler(async (req, res, next) => {
     try {
-        const query = promisify(connection.query).bind(connection);
+        const query = promisify(pool.query).bind(pool);
 
         // Verifica se existe pelo menos um usuário registrado
         const userExistsQuery = 'SELECT EXISTS(SELECT 1 FROM usuario) AS userExists';
@@ -306,7 +306,7 @@ app.delete('/delete-client/:id', async (req, res) => {
 
         try {
             // Conectar ao banco de dados e executar a consulta
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const deleteQuery = 'DELETE FROM cliente WHERE id_cliente = ?';
             const result = await query(deleteQuery, [clientId]);
 
@@ -327,7 +327,7 @@ app.delete('/delete-ocorrencia/:id', async (req, res) => {
         const ocorrenciaId = req.params.id;
 
         try {
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const deleteQuery = 'DELETE FROM ocorrencia WHERE id_ocorrencia = ?';
             const result = await query(deleteQuery, [ocorrenciaId]);
 
@@ -392,7 +392,7 @@ app.put('/update-ocorrencia/:id', upload.none(), asyncHandler(async (req, res) =
         }
 
         try {
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
 
             // Combina a data e a hora no campo data
             const dataHora = `${dataocorrenciaedit} ${horaocorrenciaedit}`;
@@ -486,7 +486,7 @@ app.post('/insert-client', async (req, res) => {
 
         try {
             // Conecte-se ao banco de dados e insira o cliente (exemplo simplificado)
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const insertQuery = 'INSERT INTO cliente (nome, cnpj) VALUES (?, ?)';
             await query(insertQuery, [nome, cleanedCNPJ]);
 
@@ -553,7 +553,7 @@ app.post('/insert-ocorrencia', upload.none(), async (req, res) => {
 
         try {
             // Conecte-se ao banco de dados e insira a ocorrência
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const insertQuery = 'INSERT INTO ocorrencia (id_usuario, id_cliente, status, data, placa_veiculo, placa_carreta, motorista, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 
             // Obter a data e hora atuais no horário de Brasília
@@ -588,7 +588,7 @@ app.get('/search-client', async (req, res) => {
         const { nome, cnpj } = req.query;
 
         try {
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const searchQuery = `
                 SELECT id_cliente, nome, cnpj 
                 FROM cliente 
@@ -614,7 +614,7 @@ app.get('/search-user', async (req, res) => {
         const { login, tipo } = req.query;
 
         try {
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const searchQuery = `
                 SELECT id_usu, login_usu, tipo, senha_usu
                 FROM usuario 
@@ -664,7 +664,7 @@ app.get('/search-ocorrencia', upload.none(), async (req, res) => {
         }
 
         try {
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
 
             let searchQuery = `
     SELECT
@@ -871,7 +871,7 @@ app.put('/update-client/:id', asyncHandler(async (req, res) => {
         }
 
         try {
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const updateQuery = 'UPDATE cliente SET nome = ?, cnpj = ? WHERE id_cliente = ?';
             const result = await query(updateQuery, [nomeedit, cleanedCNPJ, clientId]);
 
@@ -918,7 +918,7 @@ app.put('/update-user/:id', asyncHandler(async (req, res) => {
         }
 
         try {
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const updateQuery = `
                 UPDATE usuario 
                 SET login_usu = ?, senha_usu = ?, tipo = ? 
@@ -943,7 +943,7 @@ app.post('/insert-user', async (req, res) => {
 
     try {
         // Conecte-se ao banco de dados e verifique se já existe um usuário cadastrado
-        const query = promisify(connection.query).bind(connection);
+        const query = promisify(pool.query).bind(pool);
         const checkUserExistsQuery = 'SELECT EXISTS(SELECT 1 FROM usuario) AS userExists';
         const result = await query(checkUserExistsQuery);
 
@@ -1011,7 +1011,7 @@ app.delete('/delete-user/:id', async (req, res) => {
 
         try {
             // Conectar ao banco de dados e executar a consulta
-            const query = promisify(connection.query).bind(connection);
+            const query = promisify(pool.query).bind(pool);
             const deleteQuery = 'DELETE FROM usuario WHERE id_usu = ?';
             const result = await query(deleteQuery, [userId]);
 
@@ -1075,7 +1075,7 @@ app.post('/login', upload.none(), async (req, res) => {
 
     try {
         // Conecte-se ao banco de dados e verifique o usuário (exemplo simplificado)
-        const query = promisify(connection.query).bind(connection);
+        const query = promisify(pool.query).bind(pool);
         const selectQuery = 'SELECT id_usu, login_usu, senha_usu, tipo FROM usuario WHERE login_usu = ?';
         const results = await query(selectQuery, [login]);
 
